@@ -18,7 +18,7 @@ const Header = styled.header`
   h1 {
     font-size: 1.8rem;
     font-weight: bold;
-    color: var(--color-deep-green);
+    color: #3d8d7a;
   }
 `;
 const BackButton = styled.button`
