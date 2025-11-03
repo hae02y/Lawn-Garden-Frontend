@@ -10,13 +10,14 @@ interface BackgroundLayerProps {
 
 const Wrapper = styled.div`
   position: relative;
+  z-index: 0;
   align-items: center;
   overflow: hidden;
   display: flex;
-  justify-content: center;  
-  align-items: center;     
-  min-height: 100vh;    
-  width : 100vw;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100vw;
 `;
 
 const BackgroundLayer = styled.img<BackgroundLayerProps>`
