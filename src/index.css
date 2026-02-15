@@ -1,4 +1,12 @@
 :root {
+  --color-background: #fdfaf6;
+  --color-light-green: #99bc85;
+  --color-deep-green: #3d8d7a;
+  --color-container-background: #faf1e6;
+  --color-content-font: #685752;
+}
+
+:root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
