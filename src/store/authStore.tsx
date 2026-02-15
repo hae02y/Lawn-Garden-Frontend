@@ -5,7 +5,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AuthState {
   accessToken: string | null;
+  username: string | null;
   setAccessToken: (token: string) => void;
+  setUsername: (username: string) => void;
   clearAccessToken: () => void;
 }
 
@@ -13,8 +15,10 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       accessToken: null,
+      username: null,
       setAccessToken: (token: string) => set({ accessToken: token }),
-      clearAccessToken: () => set({ accessToken: null }),
+      setUsername: (username: string) => set({ username }),
+      clearAccessToken: () => set({ accessToken: null, username: null }),
     }),
     {
       name: 'auth-storage', // localStorage key

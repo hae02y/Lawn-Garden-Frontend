@@ -32,6 +32,7 @@ const Pole = styled.div`
 export default function Main() {
     const navigate = useNavigate();
     const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
+    const username = useAuthStore((state) => state.username);
   
     const handleLogout = () => {
       clearAccessToken();      // Zustand 토큰 제거
@@ -42,8 +43,8 @@ export default function Main() {
   return (
     <Wrapper marginBottom>
       <HeaderText>
-        <h2>환영합니다<br />
-        <span>아이디</span> 님!</h2>
+        <h2>안녕하세요!<br />
+        <span>{username ?? '아이디'}</span> 님!</h2>
         <p>당신의 레벨: <span>잔디관리인</span></p>
       </HeaderText>
 
@@ -59,6 +60,9 @@ export default function Main() {
         />
         <ArrowButton direction='right' text='내 정원 조회' angle={-10}
         onClick={() => navigate('/mygarden')}
+        />
+        <ArrowButton direction='left' text='아침에사과' angle={-5}
+        onClick={() => navigate('/mail')}
         />
         <ArrowButton direction='center' text='로그아웃' angle={2}
           onClick={handleLogout}/>

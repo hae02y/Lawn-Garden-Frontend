@@ -4,6 +4,7 @@ import Login from '@/pages/Login';
 import Join from '@/pages/Join';
 import NotFound from '@/pages/NotFound';
 import Main from '@/pages/Main';
+import OauthGithubCallback from '@/pages/OauthGithubCallback';
 // import Proof from '@/pages/watering/Proof';
 // import ReadPage from '@/pages/watering/ReadPage';
 // import WritePage from '@/pages/watering/WritePage';
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
       {
         path: 'join',
         element: <Join />,
+      },
+      {
+        path: 'oauth/github',
+        element: <OauthGithubCallback />,
       },
       // 로그인 한 사람만 접근 가능
       {

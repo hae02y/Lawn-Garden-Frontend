@@ -19,9 +19,14 @@ export default function Login() {
   const handleLogin = async () => {
     try {
       const res = await login({ username, password });
-      const { accessToken } = res.data as { accessToken: string };
+      const { accessToken, user } = res.data as {
+        accessToken: string;
+        user: { username: string };
+      };
 
-      useAuthStore.getState().setAccessToken(accessToken);
+      const { setAccessToken, setUsername } = useAuthStore.getState();
+      setAccessToken(accessToken);
+      setUsername(user.username);
 
       alert('로그인 성공!');
       navigate('/main');
@@ -33,6 +38,11 @@ export default function Login() {
       }
       alert('로그인 실패!');
     }
+  };
+
+  const handleGithubLogin = () => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    window.location.href = `${baseUrl}/oauth2/authorization/github`;
   };
 
   return (
@@ -54,6 +64,7 @@ export default function Login() {
         }
       />
       <Button onClick={handleLogin}>Login</Button>
+      <Button onClick={handleGithubLogin}>GitHub 로그인</Button>
 
       <SignText color="#99BC85">
         회원이 아니신가요?

@@ -2,8 +2,10 @@ import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const Axios = axios.create({
-  baseURL: 'http://43.201.157.40:8082/',
+  baseURL,
   // withCredentials: true,
 });
 

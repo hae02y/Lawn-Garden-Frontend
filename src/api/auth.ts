@@ -19,6 +19,11 @@ interface LoginPayload {
 interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
+  user?: {
+    id?: number;
+    username?: string;
+    email?: string;
+  };
 }
 
 // 회원가입 API
@@ -41,3 +46,5 @@ export const login = async (
     password,
   });
 };
+
+// GitHub OAuth 로그인
