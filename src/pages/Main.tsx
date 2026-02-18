@@ -11,6 +11,21 @@ const HeaderText = styled.header`
         color: var(--color-deep-green);
     }
 `
+
+const UserNameButton = styled.button`
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: var(--color-deep-green);
+    font-size: inherit;
+    font-weight: inherit;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+`
 const SignsSection = styled.section`
     display: flex;
     position: relative;
@@ -30,9 +45,10 @@ const Pole = styled.div`
     height: 100vh;
 `
 export default function Main() {
-    const navigate = useNavigate();
-    const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
-    const username = useAuthStore((state) => state.username);
+  const navigate = useNavigate();
+  const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
+  const username = useAuthStore((state) => state.username);
+  const userId = useAuthStore((state) => state.userId);
   
     const handleLogout = () => {
       clearAccessToken();      // Zustand 토큰 제거
@@ -44,7 +60,14 @@ export default function Main() {
     <Wrapper marginBottom>
       <HeaderText>
         <h2>안녕하세요!<br />
-        <span>{username ?? '아이디'}</span> 님!</h2>
+        <UserNameButton
+          type="button"
+          onClick={() =>
+            navigate(userId ? `/mygarden/${userId}` : '/mygarden')
+          }
+        >
+          {username ?? '아이디'}
+        </UserNameButton> 님!</h2>
         <p>당신의 레벨: <span>잔디관리인</span></p>
       </HeaderText>
 
@@ -58,10 +81,7 @@ export default function Main() {
         <ArrowButton direction='left' text='잔디정원 참여자' angle={10}
         onClick={() => navigate('/farmer')}
         />
-        <ArrowButton direction='right' text='내 정원 조회' angle={-10}
-        onClick={() => navigate('/mygarden')}
-        />
-        <ArrowButton direction='left' text='아침에사과' angle={-5}
+        <ArrowButton direction='right' text='아침에사과' angle={-5}
         onClick={() => navigate('/mail')}
         />
         <ArrowButton direction='center' text='로그아웃' angle={2}

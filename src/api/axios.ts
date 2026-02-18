@@ -16,7 +16,7 @@ Axios.interceptors.request.use(
     console.log('🔑 토큰:', token);
 
     if (token && config.headers) {
-      config.headers.Authorization = `${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;

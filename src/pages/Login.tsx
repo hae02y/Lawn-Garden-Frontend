@@ -21,11 +21,14 @@ export default function Login() {
       const res = await login({ username, password });
       const { accessToken, user } = res.data as {
         accessToken: string;
-        user: { username: string };
+        user: { id?: number; username: string };
       };
 
-      const { setAccessToken, setUsername } = useAuthStore.getState();
+      const { setAccessToken, setUserId, setUsername } = useAuthStore.getState();
       setAccessToken(accessToken);
+      if (typeof user?.id === 'number') {
+        setUserId(user.id);
+      }
       setUsername(user.username);
 
       alert('로그인 성공!');

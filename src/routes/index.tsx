@@ -5,12 +5,12 @@ import Join from '@/pages/Join';
 import NotFound from '@/pages/NotFound';
 import Main from '@/pages/Main';
 import OauthGithubCallback from '@/pages/OauthGithubCallback';
-// import Proof from '@/pages/watering/Proof';
-// import ReadPage from '@/pages/watering/ReadPage';
-// import WritePage from '@/pages/watering/WritePage';
-// import CheckMember from '@/pages/check/CheckMember';
-// import Participant from '@/pages/participant/Participant';
-// import MyGarden from '@/pages/mygarden/MyGarden';
+import Proof from '@/pages/watering/Proof';
+import ReadPage from '@/pages/watering/ReadPage';
+import WritePage from '@/pages/watering/WritePage';
+import CheckMember from '@/pages/check/CheckMember';
+import Participant from '@/pages/participant/Participant';
+import MyGarden from '@/pages/mygarden/MyGarden';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -35,12 +35,13 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'main', element: <Main /> },
-        //   { path: 'watering', element: <Proof /> },
-        //   { path: 'watering/write', element: <WritePage /> },
-        //   { path: 'watering/:postId', element: <ReadPage /> },
-        //   { path: 'laydown', element: <CheckMember /> },
-        //   { path: 'farmer', element: <Participant /> },
-        //   { path: 'mygarden', element: <MyGarden /> },
+          { path: 'watering', element: <Proof /> },
+          { path: 'watering/write', element: <WritePage /> },
+          { path: 'watering/:postId', element: <ReadPage /> },
+          { path: 'laydown', element: <CheckMember /> },
+          { path: 'farmer', element: <Participant /> },
+          // { path: 'mygarden', element: <MyGarden /> },
+          { path: 'mygarden/:userId', element: <MyGarden /> },
         ],
       },
       {

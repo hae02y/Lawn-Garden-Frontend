@@ -9,25 +9,35 @@ export default function OauthGithubCallback() {
   useEffect(() => {
     const accessToken = searchParams.get('accessToken');
     const username = searchParams.get('username');
+    const userIdParam = searchParams.get('userId');
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const hashAccessToken = hashParams.get('accessToken');
     const hashUsername = hashParams.get('username');
+    const hashUserId = hashParams.get('userId');
 
     console.log('OAuth callback URL:', window.location.href);
-    console.log('OAuth query params:', { accessToken, username });
-    console.log('OAuth hash params:', { accessToken: hashAccessToken, username: hashUsername });
+    console.log('OAuth query params:', { accessToken, username, userId: userIdParam });
+    console.log('OAuth hash params:', {
+      accessToken: hashAccessToken,
+      username: hashUsername,
+      userId: hashUserId,
+    });
 
     const exchangeCode = async () => {
       const token = accessToken || hashAccessToken;
       const name = username || hashUsername;
+      const userIdValue = userIdParam || hashUserId;
 
       if (!token) {
         navigate('/', { replace: true });
         return;
       }
 
-      const { setAccessToken, setUsername } = useAuthStore.getState();
+      const { setAccessToken, setUserId, setUsername } = useAuthStore.getState();
       setAccessToken(token);
+      if (userIdValue && !Number.isNaN(Number(userIdValue))) {
+        setUserId(Number(userIdValue));
+      }
       if (name) {
         setUsername(name);
       }
