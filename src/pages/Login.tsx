@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Logo from '@/assets/Logo.svg';
 import { LogoStyle } from '@/styles/LogoStyle';
@@ -8,16 +8,19 @@ import Wrapper from '@/styles/Wrapper';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { SignText, TextButton } from '@/components/SignText';
-import { login } from '@/api/auth';
+import { getGithubOAuthUrl, login } from '@/api/auth';
 // 토큰 저장위한 store
 import { useAuthStore } from '@/store/authStore';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState(
+    searchParams.get('error') || ''
+  );
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -73,8 +76,8 @@ export default function Login() {
   };
 
   const handleGithubLogin = () => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    window.location.href = `${baseUrl}/oauth2/authorization/github`;
+    const redirectUri = `${window.location.origin}/oauth/github`;
+    window.location.href = getGithubOAuthUrl(redirectUri);
   };
 
   return (

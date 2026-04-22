@@ -26,6 +26,8 @@ interface AuthResponse {
   };
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 // 회원가입 API
 export const signUp = async (
   { email, githubId, password }: SignUpPayload
@@ -47,4 +49,8 @@ export const login = async (
   });
 };
 
-// GitHub OAuth 로그인
+export const getGithubOAuthUrl = (redirectUri: string) => {
+  const url = new URL('/oauth2/authorization/github', API_BASE_URL);
+  url.searchParams.set('redirect_uri', redirectUri);
+  return url.toString();
+};
