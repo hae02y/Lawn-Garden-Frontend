@@ -49,11 +49,10 @@ export default function Main() {
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const username = useAuthStore((state) => state.username);
   const userId = useAuthStore((state) => state.userId);
-  
+    
     const handleLogout = () => {
-      clearAccessToken();      // Zustand 토큰 제거
-      localStorage.clear();    // 혹시 localStorage에 저장한 값도 있다면 같이 삭제
-      navigate('/');           
+      clearAccessToken();
+      navigate('/', { replace: true });
     };
 
   return (

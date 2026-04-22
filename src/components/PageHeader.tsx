@@ -1,10 +1,11 @@
 import styled from 'styled-components';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import backButton from '@/assets/backButton.svg';
 
 interface PageHeaderProps {
   title: string;
-  rightButton?: any;
+  rightButton?: ReactNode;
 }
 
 const Header = styled.header`

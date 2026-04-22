@@ -38,7 +38,7 @@ const AnimatedWrapper = styled(motion.main)<AnimatedWrapperProps>`
   ${({ marginBottom }) => marginBottom && `margin-bottom: 9vh;`}
 `;
 
-export const wrapperVariants: Variants = {
+const wrapperVariants: Variants = {
   initial: {
     opacity: 0,
     x: -60,

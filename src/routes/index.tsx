@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
           { path: 'laydown', element: <CheckMember /> },
           { path: 'farmer', element: <Participant /> },
           // { path: 'mygarden', element: <MyGarden /> },
+          { path: 'mygarden', element: <MyGarden /> },
           { path: 'mygarden/:userId', element: <MyGarden /> },
         ],
       },

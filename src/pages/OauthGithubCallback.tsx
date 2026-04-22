@@ -7,6 +7,7 @@ export default function OauthGithubCallback() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    const { clearAccessToken } = useAuthStore.getState();
     const accessToken = searchParams.get('accessToken');
     const username = searchParams.get('username');
     const userIdParam = searchParams.get('userId');
@@ -15,20 +16,13 @@ export default function OauthGithubCallback() {
     const hashUsername = hashParams.get('username');
     const hashUserId = hashParams.get('userId');
 
-    console.log('OAuth callback URL:', window.location.href);
-    console.log('OAuth query params:', { accessToken, username, userId: userIdParam });
-    console.log('OAuth hash params:', {
-      accessToken: hashAccessToken,
-      username: hashUsername,
-      userId: hashUserId,
-    });
-
     const exchangeCode = async () => {
       const token = accessToken || hashAccessToken;
       const name = username || hashUsername;
       const userIdValue = userIdParam || hashUserId;
 
       if (!token) {
+        clearAccessToken();
         navigate('/', { replace: true });
         return;
       }
