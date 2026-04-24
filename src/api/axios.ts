@@ -23,4 +23,15 @@ Axios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+Axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      useAuthStore.getState().clearAccessToken();
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default Axios;

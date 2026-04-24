@@ -8,7 +8,7 @@ import Wrapper from '@/styles/Wrapper';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { SignText, TextButton } from '@/components/SignText';
-import { getGithubOAuthUrl, login } from '@/api/auth';
+import { getGithubOAuthStartUrl, login, normalizeBearerToken } from '@/api/auth';
 // 토큰 저장위한 store
 import { useAuthStore } from '@/store/authStore';
 
@@ -34,20 +34,17 @@ export default function Login() {
     try {
       setIsSubmitting(true);
       const res = await login({ username, password });
-      const { accessToken, user } = res.data as {
-        accessToken: string;
-        user: { id?: number; username: string };
-      };
+      const { accessToken, user } = res.data;
 
       const { setAccessToken, setUserId, setUsername } = useAuthStore.getState();
-      setAccessToken(accessToken);
+      setAccessToken(normalizeBearerToken(accessToken));
       if (typeof user?.id === 'number') {
         setUserId(user.id);
       }
       setUsername(user.username);
 
       alert('로그인 성공!');
-      navigate('/main');
+      navigate('/main', { replace: true });
     } catch (err: unknown) {
       let message = '로그인에 실패했어요.';
 
@@ -76,8 +73,7 @@ export default function Login() {
   };
 
   const handleGithubLogin = () => {
-    const redirectUri = `${window.location.origin}/oauth/github`;
-    window.location.href = getGithubOAuthUrl(redirectUri);
+    window.location.href = getGithubOAuthStartUrl();
   };
 
   return (
@@ -103,12 +99,12 @@ export default function Login() {
           {isSubmitting ? '로그인 중...' : 'Login'}
         </Button>
       </form>
-      {errorMessage && <SignText color="#d46a6a">{errorMessage}</SignText>}
+      {errorMessage && <SignText $color="#d46a6a">{errorMessage}</SignText>}
       <Button type="button" onClick={handleGithubLogin}>
         GitHub 로그인
       </Button>
 
-      <SignText color="#99BC85">
+      <SignText $color="#99BC85">
         회원이 아니신가요?
         <TextButton onClick={() => navigate('/join')}> 회원가입</TextButton>
       </SignText>

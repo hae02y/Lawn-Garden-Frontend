@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { normalizeBearerToken } from '@/api/auth';
 
 export default function OauthGithubCallback() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export default function OauthGithubCallback() {
       }
 
       const { setAccessToken, setUserId, setUsername } = useAuthStore.getState();
-      setAccessToken(token);
+      setAccessToken(normalizeBearerToken(token));
       if (userIdValue && !Number.isNaN(Number(userIdValue))) {
         setUserId(Number(userIdValue));
       }

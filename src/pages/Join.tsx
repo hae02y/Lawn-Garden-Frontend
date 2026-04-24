@@ -30,7 +30,7 @@ export default function Join() {
       setIsSubmitting(true);
       await signUp({ email, githubId, password });
       alert('회원가입 성공!');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err: unknown) {
       let message = '회원가입에 실패했어요.';
 
@@ -81,8 +81,8 @@ export default function Join() {
           {isSubmitting ? '처리 중...' : 'SignUP'}
         </Button>
       </form>
-      {errorMessage && <SignText color="#d46a6a">{errorMessage}</SignText>}
-      <SignText color="#99BC85">
+      {errorMessage && <SignText $color="#d46a6a">{errorMessage}</SignText>}
+      <SignText $color="#99BC85">
         이미 회원이신가요?
         <TextButton onClick={() => navigate('/')}> 로그인</TextButton>
       </SignText>

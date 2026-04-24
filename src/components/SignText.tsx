@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
-export const SignText = styled.p`
+export const SignText = styled.p<{ $color?: string }>`
     font-size: 14px;
-    color: ${(props) => props.color || '#888'};
+    color: ${(props) => props.$color || '#888'};
 `;
 
 export const TextButton = styled.span`
