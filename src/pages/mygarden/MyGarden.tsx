@@ -3,58 +3,87 @@ import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Wrapper from '@/styles/Wrapper';
 import PageHeader from '@/components/PageHeader';
-import Container from '@/styles/Container';
-import BlockLabel from '@/styles/BlockLabel';
 import Loading from '@/components/Loading';
+import { FrameViewport } from '@/components/FrameViewport';
+import ProgressBar from '@/components/ProgressBar';
 import { getUserById } from '@/api/user';
 import { getTodayStats, getWeeklyStats } from '@/api/stats';
 import { useAuthStore } from '@/store/authStore';
 import type { UserDetailResponseDto, UserStatsResponseDto } from '@/types/api';
 
-const InfoCard = styled.section`
-  background: var(--color-background);
-  border-radius: 18px;
-  padding: 1.1rem 1.2rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  text-align: left;
+const PageContainer = styled.section`
+  width: min(92vw, 430px);
+  margin: 0 auto;
 `;
 
-const InfoRow = styled.div`
+const UserInfoBox = styled.header`
+  background-color: #faf1e6;
+  width: 100%;
+  min-height: 102px;
+  border-radius: 25px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
-  padding: 0.6rem 0;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+  margin-bottom: 10px;
+  padding: 1rem;
+  text-align: center;
+`;
 
-  &:last-child {
-    border-bottom: none;
+const UserInfoText = styled.div`
+  color: #99bc85;
+
+  span {
+    color: #3d8d7a;
   }
 `;
 
-const Label = styled.span`
-  font-weight: 600;
-  color: var(--color-content-font);
+const FrameContainer = styled.section`
+  width: 100%;
+  aspect-ratio: 430 / 450;
+  margin-bottom: 10px;
 `;
 
-const Value = styled.span`
+const TreeInfoBox = styled.section`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #faf1e6;
+  width: 100%;
+  border-radius: 25px;
+  padding: 1rem;
+  gap: 0.85rem;
+`;
+
+const TreeInfoText = styled.div`
   color: #3d8d7a;
-  font-weight: 700;
+  text-align: center;
+
+  span {
+    font-size: 17px;
+    color: #99bc85;
+  }
+`;
+
+const GraphCard = styled.div`
+  width: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
+  padding: 0.75rem;
 `;
 
 const Notice = styled.p`
-  color: var(--color-content-font);
-  line-height: 1.5;
+  color: #6b6b6b;
   text-align: center;
-  margin-top: 1rem;
 `;
 
-const SummaryCard = styled.section`
-  margin-bottom: 1rem;
-  background: rgba(255, 255, 255, 0.65);
-  border-radius: 18px;
-  padding: 1rem;
-`;
+const getTreeName = (weeklyCount: number) => {
+  if (weeklyCount >= 20) return '무성한 큰나무';
+  if (weeklyCount >= 12) return '든든한 중간나무';
+  if (weeklyCount >= 5) return '쑥쑥 자라는 새싹나무';
+  return '처음 심은 새싹';
+};
 
 export default function MyGarden() {
   const { userId } = useParams();
@@ -71,12 +100,11 @@ export default function MyGarden() {
     return Number.isNaN(parsed) ? null : parsed;
   }, [userId]);
 
-  const effectiveUserId = useMemo(() => {
-    return normalizedUserId ?? storedUserId ?? null;
-  }, [normalizedUserId, storedUserId]);
+  const effectiveUserId = normalizedUserId ?? storedUserId ?? null;
 
   useEffect(() => {
     if (!effectiveUserId) {
+      setErrorMessage('유저 ID가 없어서 상세 정보를 불러올 수 없어요.');
       return;
     }
 
@@ -109,57 +137,72 @@ export default function MyGarden() {
   }, [effectiveUserId]);
 
   const weeklyCount = useMemo(() => {
-    if (!user?.username) return '-';
+    if (!user?.username) return 0;
     const match = weeklyStats.find((item) => item.username === user.username);
-    return match?.commitCount ?? '0';
+    return Number(match?.commitCount ?? 0);
   }, [user, weeklyStats]);
 
   const todayCount = useMemo(() => {
-    if (!user?.username) return '-';
+    if (!user?.username) return 0;
     const match = todayStats.find((item) => item.username === user.username);
-    return match?.commitCount ?? '0';
+    return Number(match?.commitCount ?? 0);
   }, [user, todayStats]);
 
-  return (
-    <Wrapper>
-      <PageHeader title="내 정원 조회" />
-      <Container>
-        <BlockLabel>정원사 정보</BlockLabel>
-        {isLoading && <Loading />}
-        {!isLoading && !effectiveUserId && (
-          <Notice>유저 ID가 없어서 상세 정보를 불러올 수 없어요.</Notice>
-        )}
-        {!isLoading && effectiveUserId && errorMessage && <Notice>{errorMessage}</Notice>}
-        {!isLoading && effectiveUserId && !errorMessage && user && (
-          <>
-            <SummaryCard>
-              <InfoRow>
-                <Label>오늘 잔디</Label>
-                <Value>{todayCount}</Value>
-              </InfoRow>
-              <InfoRow>
-                <Label>이번주 잔디</Label>
-                <Value>{weeklyCount}</Value>
-              </InfoRow>
-            </SummaryCard>
+  const themeMode = new Date().getHours() >= 6 && new Date().getHours() < 18 ? 'morning' : 'night';
+  const treeName = getTreeName(weeklyCount);
+  const progressTotal = 20;
+  const progressValue = Math.min(progressTotal, weeklyCount);
+  const githubId = user?.username ?? 'gardener';
 
-            <InfoCard>
-              <InfoRow>
-                <Label>아이디</Label>
-                <Value>{user.id ?? effectiveUserId}</Value>
-              </InfoRow>
-              <InfoRow>
-                <Label>이름</Label>
-                <Value>{user.username ?? '-'}</Value>
-              </InfoRow>
-              <InfoRow>
-                <Label>이메일</Label>
-                <Value>{user.email ?? '-'}</Value>
-              </InfoRow>
-            </InfoCard>
+  return (
+    <Wrapper marginBottom>
+      <PageHeader title="내 정원 조회" />
+      <PageContainer>
+        {isLoading && <Loading />}
+        {!isLoading && errorMessage && <Notice>{errorMessage}</Notice>}
+
+        {!isLoading && !errorMessage && user && (
+          <>
+            <UserInfoBox>
+              <UserInfoText>
+                <h2>
+                  <span>{user.username}</span> 님의 정원
+                </h2>
+                <h4>
+                  당신의 레벨 : <span>잔디관리원</span>
+                </h4>
+              </UserInfoText>
+            </UserInfoBox>
+
+            <FrameContainer>
+              <FrameViewport
+                themeMode={themeMode}
+                treeState={{ totalDate: weeklyCount, currentDate: todayCount }}
+              />
+            </FrameContainer>
+
+            <TreeInfoBox>
+              <TreeInfoText>
+                <h3>
+                  지금 내 나무는?
+                  <br />
+                  <span>{treeName}</span>
+                </h3>
+              </TreeInfoText>
+
+              <ProgressBar total={progressTotal} value={progressValue} />
+
+              <GraphCard>
+                <img
+                  src={`https://ghchart.rshah.org/${encodeURIComponent(githubId)}`}
+                  alt="GitHub 잔디 그래프"
+                  style={{ width: '100%', border: 'none', display: 'block' }}
+                />
+              </GraphCard>
+            </TreeInfoBox>
           </>
         )}
-      </Container>
+      </PageContainer>
     </Wrapper>
   );
 }
