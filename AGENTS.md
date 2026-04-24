@@ -67,6 +67,8 @@ These are inferred from the current codebase and configs.
 - Global styles are defined in `src/styles/GlobalStyle.tsx`.
 - CSS variables are expected (see usage like `var(--color-...)`).
 - Keep styled-components co-located with components when practical.
+- Design system source of truth is `DESIGN_SYSTEM.md`.
+- For all UI work, read and follow `DESIGN_SYSTEM.md` first.
 
 ### API and Error Handling
 - Use the shared Axios instance from `src/api/axios.ts`.

@@ -11,6 +11,7 @@ import WritePage from '@/pages/watering/WritePage';
 import CheckMember from '@/pages/check/CheckMember';
 import Participant from '@/pages/participant/Participant';
 import MyGarden from '@/pages/mygarden/MyGarden';
+import Greenhouse from '@/pages/greenhouse/Greenhouse';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
           // { path: 'mygarden', element: <MyGarden /> },
           { path: 'mygarden', element: <MyGarden /> },
           { path: 'mygarden/:userId', element: <MyGarden /> },
+          { path: 'greenhouse', element: <Greenhouse /> },
         ],
       },
       {

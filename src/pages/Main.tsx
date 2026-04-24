@@ -110,6 +110,12 @@ export default function Main() {
           angle={-5}
           onClick={() => navigate(userId ? `/mygarden/${userId}` : '/mygarden')}
         />
+        <ArrowButton
+          direction="left"
+          text="비닐하우스"
+          angle={6}
+          onClick={() => navigate('/greenhouse')}
+        />
         <ArrowButton direction="center" text="로그아웃" angle={2} onClick={handleLogout} />
       </SignsSection>
     </Wrapper>

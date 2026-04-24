@@ -52,4 +52,22 @@ export interface PageResponse<T> {
   size: number;
 }
 
+export interface GeekNewsResponseDto {
+  id: number | null;
+  sourceId: string;
+  title: string;
+  link: string;
+  summary: string | null;
+  publishedAt: string | null;
+}
+
+export interface GeekNewsListResponseDto {
+  items: GeekNewsResponseDto[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
 export type MailStatus = 'ON' | 'OFF';
