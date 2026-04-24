@@ -7,7 +7,7 @@ import Container from '@/styles/Container';
 import SearchBar from '@/components/SearchBar';
 import { FooterPagination } from '@/styles/FooterPagination';
 import { UserList, UserItem, UserInfoRow, Icon, Count } from '@/styles/UserList';
-import { getAllUsers } from '@/api/user';
+import { getTodayUsers } from '@/api/user';
 import { getWeeklyStats } from '@/api/stats';
 import type { UserDetailResponseDto, UserStatsResponseDto } from '@/types/api';
 
@@ -64,8 +64,8 @@ export default function Participant() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserDetailResponseDto[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<UserStatsResponseDto[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [userErrorMessage, setUserErrorMessage] = useState('');
 
   const [currentPage, setCurrentPage] = useState(0);
   const USERS_PER_PAGE = 7;
@@ -73,25 +73,37 @@ export default function Participant() {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      setIsLoading(true);
-      setErrorMessage('');
+      setIsLoadingUsers(true);
+      setUserErrorMessage('');
 
       try {
-        const [usersRes, statsRes] = await Promise.all([getAllUsers(), getWeeklyStats()]);
+        const usersRes = await getTodayUsers('a');
         setUsers(usersRes.data);
-        setWeeklyStats(statsRes.data);
       } catch (error) {
         if (error instanceof Error) {
-          setErrorMessage(error.message);
+          setUserErrorMessage(error.message);
         } else {
-          setErrorMessage('유저 조회에 실패했어요.');
+          setUserErrorMessage('유저 조회에 실패했어요.');
         }
       } finally {
-        setIsLoading(false);
+        setIsLoadingUsers(false);
       }
     };
 
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const statsRes = await getWeeklyStats();
+        setWeeklyStats(statsRes.data);
+      } catch {
+        // 통계 실패 시에도 참여자 목록은 정상 표시한다.
+      }
+    };
+
+    fetchStats();
   }, []);
 
   const commitCountMap = useMemo(() => {
@@ -133,11 +145,11 @@ export default function Participant() {
           />
         </SearchHeader>
 
-        {isLoading && <Notice>불러오는 중...</Notice>}
-        {!isLoading && errorMessage && <Notice>{errorMessage}</Notice>}
-        {!isLoading && !errorMessage && !filteredUsers.length && <Notice>검색 결과가 없어요.</Notice>}
+        {isLoadingUsers && <Notice>불러오는 중...</Notice>}
+        {!isLoadingUsers && userErrorMessage && <Notice>{userErrorMessage}</Notice>}
+        {!isLoadingUsers && !userErrorMessage && !filteredUsers.length && <Notice>검색 결과가 없어요.</Notice>}
 
-        {!isLoading && !errorMessage && filteredUsers.length > 0 && (
+        {!isLoadingUsers && !userErrorMessage && filteredUsers.length > 0 && (
           <UserList>
             {paginatedUsers.map((user, i) => (
               <ClickableUserItem

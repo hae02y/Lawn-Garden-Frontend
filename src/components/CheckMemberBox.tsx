@@ -15,10 +15,11 @@ const Container = styled.section`
   flex: 1;
   width: 50vh;
   border-radius: 30px;
-  padding: 1.2rem;
+  padding: 1.6rem 1.35rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 
   @media (max-width: 768px) {
-    width: 40vh;
+    width: 100%;
   }
 `;
 
@@ -38,7 +39,7 @@ const SubText = styled.p`
   text-align: center;
   font-size: 0.9rem;
   color: #888;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 
   @media (max-width: 768px) {
     font-size: 0.8rem;

@@ -12,6 +12,8 @@ const BoxWrapper = styled.div`
   flex-direction: row;
   flex-wrap: wrap;
   gap: 1.2rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
