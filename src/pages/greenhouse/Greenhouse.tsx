@@ -110,22 +110,6 @@ const formatPublishedAt = (value: string | null) => {
   }).format(date);
 };
 
-const decodeHtmlEntities = (value: string) => {
-  if (!value) return '';
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = value;
-  return textarea.value;
-};
-
-const stripHtmlTags = (value: string) => value.replace(/<[^>]*>/g, ' ');
-
-const formatNewsText = (value: string | null) => {
-  if (!value) return '';
-  const withoutTag = stripHtmlTags(value);
-  const decoded = decodeHtmlEntities(withoutTag);
-  return decoded.replace(/\s+/g, ' ').trim();
-};
-
 export default function Greenhouse() {
   const [items, setItems] = useState<GeekNewsResponseDto[]>([]);
   const [keyword, setKeyword] = useState('');
@@ -186,8 +170,8 @@ export default function Greenhouse() {
           <ListViewport>
             <List>
               {items.map((news) => {
-                const title = formatNewsText(news.title) || '제목 정보가 없어요.';
-                const summary = formatNewsText(news.summary) || '요약 정보가 없어요.';
+                const title = news.title?.trim() || '제목 정보가 없어요.';
+                const summary = news.summary?.trim() || '요약 정보가 없어요.';
 
                 return (
                   <NewsCard key={news.id ?? news.sourceId}>
