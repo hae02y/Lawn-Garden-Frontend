@@ -7,6 +7,7 @@ import SearchBar from '@/components/SearchBar';
 import { FooterPagination } from '@/styles/FooterPagination';
 import { getGeekNews } from '@/api/geeknews';
 import type { GeekNewsResponseDto } from '@/types/api';
+import { getErrorMessage } from '@/utils/error';
 
 const Intro = styled.p`
   color: var(--color-content-font);
@@ -118,11 +119,7 @@ export default function Greenhouse() {
         setItems(response.data.items);
         setTotalPages(response.data.totalPages);
       } catch (error: unknown) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage('비닐하우스 소식을 불러오지 못했어요.');
-        }
+        setErrorMessage(getErrorMessage(error, '비닐하우스 소식을 불러오지 못했어요.'));
       } finally {
         setIsLoading(false);
       }

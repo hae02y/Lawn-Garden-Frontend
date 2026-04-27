@@ -8,6 +8,7 @@ import ProofItem from '@/components/ProofItem';
 import Button from '@/components/Button';
 import { createPost } from '@/api/post';
 import { useNavigate } from 'react-router-dom';
+import { getErrorMessage } from '@/utils/error';
 
 const PhotoBlock = styled.div`
   display: flex;
@@ -135,12 +136,8 @@ export default function WritePage() {
       await createPost(formData);
       alert('물주기 글이 작성되었습니다!');
       navigate('/watering');
-    } catch (error) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage('글 작성 실패');
-      }
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, '글 작성에 실패했어요.'));
     } finally {
       setIsSubmitting(false);
     }

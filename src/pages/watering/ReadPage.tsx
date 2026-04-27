@@ -8,7 +8,9 @@ import Container from '@/styles/Container';
 import ProofItem from '@/components/ProofItem';
 import Loading from '@/components/Loading';
 import { getPostById } from '@/api/post';
+import { API_BASE_URL } from '@/api/config';
 import type { PostDetailDto } from '@/types/api';
+import { getErrorMessage } from '@/utils/error';
 
 const PhotoBlock = styled.div`
   display: flex;
@@ -40,6 +42,11 @@ const Notice = styled.p`
   padding: 1rem 0;
 `;
 
+const resolveImageUrl = (image: string) => {
+  if (/^https?:\/\//i.test(image)) return image;
+  return `${API_BASE_URL}/images/${encodeURIComponent(image)}`;
+};
+
 export default function ReadPage() {
   const { postId } = useParams();
   const [post, setPost] = useState<PostDetailDto | null>(null);
@@ -60,12 +67,8 @@ export default function ReadPage() {
       try {
         const res = await getPostById(postId);
         setPost(res.data);
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage('글 불러오기에 실패했어요.');
-        }
+      } catch (error: unknown) {
+        setErrorMessage(getErrorMessage(error, '글 불러오기에 실패했어요.'));
       } finally {
         setIsLoading(false);
       }
@@ -89,7 +92,7 @@ export default function ReadPage() {
             <PhotoBlock>
               {post.image ? (
                 <img
-                  src={`data:image/png;base64,${post.image}`}
+                  src={resolveImageUrl(post.image)}
                   alt="인증 이미지"
                   style={{ maxHeight: '100%', maxWidth: '100%', borderRadius: '10px' }}
                 />

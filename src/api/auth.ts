@@ -1,8 +1,13 @@
 import axios from './axios';
 import type { AxiosResponse } from 'axios';
-import type { LoginRequest, LoginResponse, SignUpRequest, UserDetailResponseDto } from '@/types/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { API_BASE_URL } from './config';
+import type {
+  LoginRequest,
+  LoginResponse,
+  RefreshTokenRequest,
+  SignUpRequest,
+  UserDetailResponseDto,
+} from '@/types/api';
 
 export const normalizeBearerToken = (value: string) =>
   value.replace(/^Bearer\s+/i, '').trim();
@@ -28,6 +33,12 @@ export const login = async (
 
 export const logout = async (): Promise<AxiosResponse<void>> => {
   return await axios.post('/api/v1/auth/logout');
+};
+
+export const refresh = async (
+  request: RefreshTokenRequest
+): Promise<AxiosResponse<LoginResponse>> => {
+  return await axios.post('/api/v1/auth/refresh', request);
 };
 
 export const getGithubOAuthStartUrl = () => {

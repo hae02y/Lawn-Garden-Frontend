@@ -22,6 +22,17 @@ export interface LoginResponse {
   user: UserDetailResponseDto;
 }
 
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface ApiErrorResponse {
+  errorCode?: string;
+  message?: string;
+  error?: string;
+  timestamp?: string;
+}
+
 export interface SignUpRequest {
   email: string;
   githubId: string;
@@ -71,3 +82,7 @@ export interface GeekNewsListResponseDto {
 }
 
 export type MailStatus = 'ON' | 'OFF';
+
+export interface MailStatusResponseDto {
+  status: MailStatus;
+}

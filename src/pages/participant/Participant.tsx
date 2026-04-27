@@ -10,6 +10,7 @@ import { UserList, UserItem, UserInfoRow, Icon, Count } from '@/styles/UserList'
 import { getTodayUsers } from '@/api/user';
 import { getWeeklyStats } from '@/api/stats';
 import type { UserDetailResponseDto, UserStatsResponseDto } from '@/types/api';
+import { getErrorMessage } from '@/utils/error';
 
 const SearchHeader = styled.header`
   display: flex;
@@ -79,12 +80,8 @@ export default function Participant() {
       try {
         const usersRes = await getTodayUsers('a');
         setUsers(usersRes.data);
-      } catch (error) {
-        if (error instanceof Error) {
-          setUserErrorMessage(error.message);
-        } else {
-          setUserErrorMessage('유저 조회에 실패했어요.');
-        }
+      } catch (error: unknown) {
+        setUserErrorMessage(getErrorMessage(error, '유저 조회에 실패했어요.'));
       } finally {
         setIsLoadingUsers(false);
       }

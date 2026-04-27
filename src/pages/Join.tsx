@@ -1,6 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import Logo from '@/assets/Logo.svg';
 import { LogoStyle } from '@/styles/LogoStyle';
 import Wrapper from '@/styles/Wrapper';
@@ -8,6 +7,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { SignText, TextButton } from '@/components/SignText';
 import { signUp } from '@/api/auth';
+import { getErrorMessage } from '@/utils/error';
 
 export default function Join() {
   const navigate = useNavigate();
@@ -32,26 +32,7 @@ export default function Join() {
       alert('회원가입 성공!');
       navigate('/', { replace: true });
     } catch (err: unknown) {
-      let message = '회원가입에 실패했어요.';
-
-      if (axios.isAxiosError(err)) {
-        const data = err.response?.data as
-          | { message?: string; error?: string }
-          | string
-          | undefined;
-
-        if (typeof data === 'string') {
-          message = data;
-        } else {
-          message = data?.message || data?.error || message;
-        }
-      } else if (err instanceof Error) {
-        message = err.message;
-      } else {
-        console.error('알 수 없는 에러:', err);
-      }
-
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '회원가입에 실패했어요.'));
     } finally {
       setIsSubmitting(false);
     }

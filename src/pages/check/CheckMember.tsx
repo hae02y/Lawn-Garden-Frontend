@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import CheckMemberBox from '@/components/CheckMemberBox';
 import { getTodayUsers } from '@/api/user';
 import type { UserDetailResponseDto } from '@/types/api';
+import { getErrorMessage } from '@/utils/error';
 
 const BoxWrapper = styled.div`
   display: flex;
@@ -55,12 +56,8 @@ export default function CheckMember() {
         ]);
         setCertified(certifiedRes.data);
         setUncertified(uncertifiedRes.data);
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage('인증자 조회에 실패했어요.');
-        }
+      } catch (error: unknown) {
+        setErrorMessage(getErrorMessage(error, '인증자 조회에 실패했어요.'));
       } finally {
         setIsLoading(false);
       }

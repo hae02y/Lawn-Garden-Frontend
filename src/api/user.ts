@@ -12,6 +12,10 @@ export const getUserById = async (
   return await axios.get(`/api/v1/users/${userId}`);
 };
 
+export const getMyUser = async (): Promise<AxiosResponse<UserDetailResponseDto>> => {
+  return await axios.get('/api/v1/users/me');
+};
+
 export const getTodayUsers = async (
   commit: 'y' | 'n' | 'a'
 ): Promise<AxiosResponse<UserDetailResponseDto[]>> => {

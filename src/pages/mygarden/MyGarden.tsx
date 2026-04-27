@@ -10,6 +10,7 @@ import { getUserById } from '@/api/user';
 import { getTodayStats, getWeeklyStats } from '@/api/stats';
 import { useAuthStore } from '@/store/authStore';
 import type { UserDetailResponseDto, UserStatsResponseDto } from '@/types/api';
+import { getErrorMessage } from '@/utils/error';
 
 const PageContainer = styled.section`
   width: min(92vw, 430px);
@@ -122,12 +123,8 @@ export default function MyGarden() {
         setUser(userRes.data);
         setWeeklyStats(weeklyRes.data);
         setTodayStats(todayRes.data);
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage('유저 정보를 불러오지 못했어요.');
-        }
+      } catch (error: unknown) {
+        setErrorMessage(getErrorMessage(error, '유저 정보를 불러오지 못했어요.'));
       } finally {
         setIsLoading(false);
       }

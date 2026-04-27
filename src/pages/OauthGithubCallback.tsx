@@ -11,11 +11,15 @@ export default function OauthGithubCallback() {
     const { clearAccessToken } = useAuthStore.getState();
     const accessToken = searchParams.get('accessToken');
     const accessTokenAlt = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refreshToken');
+    const refreshTokenAlt = searchParams.get('refresh_token');
     const username = searchParams.get('username');
     const userIdParam = searchParams.get('userId');
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const hashAccessToken = hashParams.get('accessToken');
     const hashAccessTokenAlt = hashParams.get('access_token');
+    const hashRefreshToken = hashParams.get('refreshToken');
+    const hashRefreshTokenAlt = hashParams.get('refresh_token');
     const hashUsername = hashParams.get('username');
     const hashUserId = hashParams.get('userId');
     const hashError = hashParams.get('error');
@@ -24,6 +28,7 @@ export default function OauthGithubCallback() {
 
     const exchangeCode = async () => {
       const token = accessToken || accessTokenAlt || hashAccessToken || hashAccessTokenAlt;
+      const nextRefreshToken = refreshToken || refreshTokenAlt || hashRefreshToken || hashRefreshTokenAlt;
       const name = username || hashUsername;
       const userIdValue = userIdParam || hashUserId;
       const oauthError = errorMessage || hashError || hashMessage;
@@ -40,14 +45,19 @@ export default function OauthGithubCallback() {
         return;
       }
 
-      const { setAccessToken, setUserId, setUsername } = useAuthStore.getState();
-      setAccessToken(normalizeBearerToken(token));
-      if (userIdValue && !Number.isNaN(Number(userIdValue))) {
-        setUserId(Number(userIdValue));
+      if (!nextRefreshToken) {
+        clearAccessToken();
+        navigate('/?error=github-refresh-token-missing', { replace: true });
+        return;
       }
-      if (name) {
-        setUsername(name);
-      }
+
+      const { setAuthSession } = useAuthStore.getState();
+      setAuthSession({
+        accessToken: normalizeBearerToken(token),
+        refreshToken: normalizeBearerToken(nextRefreshToken),
+        userId: userIdValue && !Number.isNaN(Number(userIdValue)) ? Number(userIdValue) : null,
+        username: name ?? 'github-user',
+      });
       navigate('/main', { replace: true });
     };
 

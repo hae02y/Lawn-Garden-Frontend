@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import Logo from '@/assets/Logo.svg';
 import { LogoStyle } from '@/styles/LogoStyle';
 import Wrapper from '@/styles/Wrapper';
@@ -9,6 +8,7 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { SignText, TextButton } from '@/components/SignText';
 import { getGithubOAuthStartUrl, login, normalizeBearerToken } from '@/api/auth';
+import { getErrorMessage } from '@/utils/error';
 // 토큰 저장위한 store
 import { useAuthStore } from '@/store/authStore';
 
@@ -34,40 +34,21 @@ export default function Login() {
     try {
       setIsSubmitting(true);
       const res = await login({ username, password });
-      const { accessToken, user } = res.data;
+      const { accessToken, refreshToken, user } = res.data;
 
-      const { setAccessToken, setUserId, setUsername } = useAuthStore.getState();
-      setAccessToken(normalizeBearerToken(accessToken));
-      if (typeof user?.id === 'number') {
-        setUserId(user.id);
-      }
-      setUsername(user.username);
+      const { setAuthSession } = useAuthStore.getState();
+      setAuthSession({
+        accessToken: normalizeBearerToken(accessToken),
+        refreshToken: normalizeBearerToken(refreshToken),
+        userId: typeof user?.id === 'number' ? user.id : null,
+        username: user.username,
+      });
 
       alert('로그인 성공!');
       navigate('/main', { replace: true });
     } catch (err: unknown) {
-      let message = '로그인에 실패했어요.';
-
-      if (axios.isAxiosError(err)) {
-        const data = err.response?.data as
-          | { message?: string; error?: string }
-          | string
-          | undefined;
-
-        if (typeof data === 'string') {
-          message = data;
-        } else {
-          message = data?.message || data?.error || message;
-        }
-      } else if (err instanceof Error) {
-        message = err.message;
-      } else {
-        console.error('로그인 실패: 알 수 없는 오류', err);
-      }
-
-      setErrorMessage(message);
-    }
-    finally {
+      setErrorMessage(getErrorMessage(err, '로그인에 실패했어요.'));
+    } finally {
       setIsSubmitting(false);
     }
   };

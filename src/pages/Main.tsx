@@ -1,9 +1,14 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Wrapper from '@/styles/Wrapper';
 import ArrowButton from '@/components/ArrowButton';
 import { useAuthStore } from '@/store/authStore';
 import { logout } from '@/api/auth';
+import { changeMailStatus, getMyMailStatus } from '@/api/mail';
+import { getMyUser } from '@/api/user';
+import { getErrorMessage } from '@/utils/error';
+import type { MailStatus } from '@/types/api';
 
 const HeaderText = styled.header`
   color: var(--color-light-green);
@@ -49,11 +54,74 @@ const Pole = styled.div`
   height: 100vh;
 `;
 
+const MailCard = styled.div`
+  width: min(92vw, 430px);
+  background: var(--color-container-background);
+  border-radius: 20px;
+  margin-bottom: 1rem;
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+`;
+
+const MailInfo = styled.div`
+  text-align: left;
+  color: var(--color-content-font);
+  font-size: 0.9rem;
+`;
+
+const MailStatusButton = styled.button<{ $active: boolean }>`
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  background-color: ${({ $active }) => ($active ? 'var(--color-deep-green)' : '#9f9a97')};
+`;
+
+const Notice = styled.p`
+  color: #9a5f5f;
+  font-size: 0.8rem;
+  margin-bottom: 0.8rem;
+`;
+
 export default function Main() {
   const navigate = useNavigate();
-  const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
-  const username = useAuthStore((state) => state.username);
-  const userId = useAuthStore((state) => state.userId);
+  const { clearAccessToken, userId, username } = useAuthStore((state) => ({
+    clearAccessToken: state.clearAccessToken,
+    userId: state.userId,
+    username: state.username,
+  }));
+  const [mailStatus, setMailStatus] = useState<MailStatus | null>(null);
+  const [isMailLoading, setIsMailLoading] = useState(false);
+  const [mailErrorMessage, setMailErrorMessage] = useState('');
+
+  useEffect(() => {
+    const bootstrapSession = async () => {
+      const { setUserId, setUsername } = useAuthStore.getState();
+
+      try {
+        if (!userId || !username) {
+          const meRes = await getMyUser();
+          if (typeof meRes.data.id === 'number') {
+            setUserId(meRes.data.id);
+          }
+          setUsername(meRes.data.username);
+        }
+
+        const mailRes = await getMyMailStatus();
+        setMailStatus(mailRes.data.status);
+      } catch (error: unknown) {
+        setMailErrorMessage(getErrorMessage(error, '알림 상태를 불러오지 못했어요.'));
+      }
+    };
+
+    bootstrapSession();
+  }, [userId, username]);
 
   const handleLogout = async () => {
     try {
@@ -63,6 +131,23 @@ export default function Main() {
     } finally {
       clearAccessToken();
       navigate('/', { replace: true });
+    }
+  };
+
+  const handleToggleMail = async () => {
+    if (!mailStatus || isMailLoading) return;
+    setIsMailLoading(true);
+    setMailErrorMessage('');
+
+    const nextStatus: MailStatus = mailStatus === 'ON' ? 'OFF' : 'ON';
+
+    try {
+      const response = await changeMailStatus(nextStatus);
+      setMailStatus(response.data.status);
+    } catch (error: unknown) {
+      setMailErrorMessage(getErrorMessage(error, '알림 상태를 변경하지 못했어요.'));
+    } finally {
+      setIsMailLoading(false);
     }
   };
 
@@ -83,6 +168,28 @@ export default function Main() {
           당신의 레벨: <span>잔디관리인</span>
         </p>
       </HeaderText>
+
+      <MailCard>
+        <MailInfo>
+          <strong>데일리 메일 알림</strong>
+          <div>
+            {mailStatus === null
+              ? '알림 상태를 확인 중이에요.'
+              : mailStatus === 'ON'
+                ? '매일 소식을 받고 있어요.'
+                : '알림이 꺼져 있어요.'}
+          </div>
+        </MailInfo>
+        <MailStatusButton
+          type="button"
+          $active={mailStatus === 'ON'}
+          onClick={handleToggleMail}
+          disabled={isMailLoading || !mailStatus}
+        >
+          {isMailLoading ? '변경 중...' : mailStatus ?? '확인 중'}
+        </MailStatusButton>
+      </MailCard>
+      {mailErrorMessage && <Notice>{mailErrorMessage}</Notice>}
 
       <SignsSection>
         <Pole />

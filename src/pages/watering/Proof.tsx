@@ -9,6 +9,7 @@ import SearchBar from '@/components/SearchBar';
 import { FooterPagination } from '@/styles/FooterPagination';
 import { getPosts } from '@/api/post';
 import type { PostSummaryDto } from '@/types/api';
+import { getErrorMessage } from '@/utils/error';
 
 const WriteButton = styled.button`
   background-color: var(--color-light-green);
@@ -69,12 +70,8 @@ export default function Proof() {
         });
         setPosts(res.data.content);
         setTotalPages(res.data.totalPages);
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage('물주기 목록 조회에 실패했어요.');
-        }
+      } catch (error: unknown) {
+        setErrorMessage(getErrorMessage(error, '물주기 목록 조회에 실패했어요.'));
       } finally {
         setIsLoading(false);
       }

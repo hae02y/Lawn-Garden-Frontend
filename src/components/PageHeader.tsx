@@ -42,11 +42,11 @@ export default function PageHeader({ title, rightButton }: PageHeaderProps) {
 
   return (
     <Header>
-      <BackButton aria-label="뒤로가기">
-        <img src={backButton} alt="뒤로가기" onClick={() => navigate(-1)} />
+      <BackButton type="button" aria-label="뒤로가기" onClick={() => navigate(-1)}>
+        <img src={backButton} alt="뒤로가기" />
       </BackButton>
       <h1>{title}</h1>
-      {rightButton ?? <></>}
+      {rightButton ?? <span />}
     </Header>
   );
 }
