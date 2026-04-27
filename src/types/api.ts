@@ -2,6 +2,8 @@ export interface UserDetailResponseDto {
   id: number | null;
   username: string;
   email: string;
+  level: number;
+  levelName: string;
 }
 
 export interface UserStatsResponseDto {

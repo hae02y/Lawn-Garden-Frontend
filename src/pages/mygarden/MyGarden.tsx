@@ -166,7 +166,7 @@ export default function MyGarden() {
                   <span>{user.username}</span> 님의 정원
                 </h2>
                 <h4>
-                  당신의 레벨 : <span>잔디관리원</span>
+                  당신의 레벨 : <span>Lv.{user.level} {user.levelName}</span>
                 </h4>
               </UserInfoText>
             </UserInfoBox>

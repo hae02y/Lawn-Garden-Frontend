@@ -94,6 +94,7 @@ export default function Main() {
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const userId = useAuthStore((state) => state.userId);
   const username = useAuthStore((state) => state.username);
+  const [levelName, setLevelName] = useState('처음 심은 새싹');
   const [mailStatus, setMailStatus] = useState<MailStatus | null>(null);
   const [isMailLoading, setIsMailLoading] = useState(false);
   const [mailErrorMessage, setMailErrorMessage] = useState('');
@@ -103,13 +104,12 @@ export default function Main() {
       const { setUserId, setUsername } = useAuthStore.getState();
 
       try {
-        if (!userId || !username) {
-          const meRes = await getMyUser();
-          if (typeof meRes.data.id === 'number') {
-            setUserId(meRes.data.id);
-          }
-          setUsername(meRes.data.username);
+        const meRes = await getMyUser();
+        if (typeof meRes.data.id === 'number') {
+          setUserId(meRes.data.id);
         }
+        setUsername(meRes.data.username);
+        setLevelName(meRes.data.levelName || '처음 심은 새싹');
 
         const mailRes = await getMyMailStatus();
         setMailStatus(mailRes.data.status);
@@ -119,7 +119,7 @@ export default function Main() {
     };
 
     bootstrapSession();
-  }, [userId, username]);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -163,7 +163,7 @@ export default function Main() {
           님!
         </h2>
         <p>
-          당신의 레벨: <span>잔디관리인</span>
+          당신의 레벨: <span>{levelName}</span>
         </p>
       </HeaderText>
 
