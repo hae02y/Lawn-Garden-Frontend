@@ -24,28 +24,43 @@ const List = styled.ul`
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.7rem;
   text-align: left;
+`;
+
+const ListViewport = styled.div`
+  width: 100%;
+  max-height: min(54vh, 520px);
+  overflow-y: auto;
+  padding-right: 0.2rem;
 `;
 
 const NewsCard = styled.li`
   background: var(--color-background);
   border-radius: 20px;
-  padding: 1rem;
+  padding: 0.85rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 `;
 
 const NewsTitle = styled.h3`
   color: var(--color-deep-green);
   font-size: 1.05rem;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const Summary = styled.p`
   color: var(--color-content-font);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.5;
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const Meta = styled.div`
@@ -95,6 +110,22 @@ const formatPublishedAt = (value: string | null) => {
   }).format(date);
 };
 
+const decodeHtmlEntities = (value: string) => {
+  if (!value) return '';
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const stripHtmlTags = (value: string) => value.replace(/<[^>]*>/g, ' ');
+
+const formatNewsText = (value: string | null) => {
+  if (!value) return '';
+  const withoutTag = stripHtmlTags(value);
+  const decoded = decodeHtmlEntities(withoutTag);
+  return decoded.replace(/\s+/g, ' ').trim();
+};
+
 export default function Greenhouse() {
   const [items, setItems] = useState<GeekNewsResponseDto[]>([]);
   const [keyword, setKeyword] = useState('');
@@ -102,7 +133,7 @@ export default function Greenhouse() {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 6;
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -152,20 +183,27 @@ export default function Greenhouse() {
         {!isLoading && !errorMessage && !hasResult && <Notice>표시할 소식이 없어요.</Notice>}
 
         {!isLoading && !errorMessage && hasResult && (
-          <List>
-            {items.map((news) => (
-              <NewsCard key={news.id ?? news.sourceId}>
-                <NewsTitle>{news.title}</NewsTitle>
-                <Summary>{news.summary ?? '요약 정보가 없어요.'}</Summary>
-                <Meta>
-                  <DateText>{formatPublishedAt(news.publishedAt)}</DateText>
-                  <LinkButton href={news.link} target="_blank" rel="noreferrer">
-                    원문 보기
-                  </LinkButton>
-                </Meta>
-              </NewsCard>
-            ))}
-          </List>
+          <ListViewport>
+            <List>
+              {items.map((news) => {
+                const title = formatNewsText(news.title) || '제목 정보가 없어요.';
+                const summary = formatNewsText(news.summary) || '요약 정보가 없어요.';
+
+                return (
+                  <NewsCard key={news.id ?? news.sourceId}>
+                    <NewsTitle>{title}</NewsTitle>
+                    <Summary>{summary}</Summary>
+                    <Meta>
+                      <DateText>{formatPublishedAt(news.publishedAt)}</DateText>
+                      <LinkButton href={news.link} target="_blank" rel="noreferrer">
+                        원문 보기
+                      </LinkButton>
+                    </Meta>
+                  </NewsCard>
+                );
+              })}
+            </List>
+          </ListViewport>
         )}
       </Container>
 
