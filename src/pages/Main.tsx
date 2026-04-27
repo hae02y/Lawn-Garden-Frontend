@@ -91,11 +91,9 @@ const Notice = styled.p`
 
 export default function Main() {
   const navigate = useNavigate();
-  const { clearAccessToken, userId, username } = useAuthStore((state) => ({
-    clearAccessToken: state.clearAccessToken,
-    userId: state.userId,
-    username: state.username,
-  }));
+  const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
+  const userId = useAuthStore((state) => state.userId);
+  const username = useAuthStore((state) => state.username);
   const [mailStatus, setMailStatus] = useState<MailStatus | null>(null);
   const [isMailLoading, setIsMailLoading] = useState(false);
   const [mailErrorMessage, setMailErrorMessage] = useState('');
