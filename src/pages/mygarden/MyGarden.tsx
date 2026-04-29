@@ -20,19 +20,23 @@ import { getErrorMessage } from '@/utils/error';
 const PageContainer = styled.section`
   width: min(92vw, 430px);
   margin: 0 auto;
+  height: calc(100dvh - 86px);
+  display: grid;
+  grid-template-rows: auto minmax(160px, 1fr) auto auto;
+  gap: 8px;
+  overflow: hidden;
 `;
 
 const UserInfoBox = styled.header`
   background-color: #faf1e6;
   width: 100%;
-  min-height: 102px;
+  min-height: 82px;
   border-radius: 25px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  margin-bottom: 10px;
-  padding: 1rem;
+  padding: 0.75rem;
   text-align: center;
 `;
 
@@ -46,8 +50,8 @@ const UserInfoText = styled.div`
 
 const FrameContainer = styled.section`
   width: 100%;
-  aspect-ratio: 430 / 450;
-  margin-bottom: 10px;
+  min-height: 165px;
+  max-height: 34vh;
 `;
 
 const TreeInfoBox = styled.section`
@@ -58,8 +62,8 @@ const TreeInfoBox = styled.section`
   background-color: #faf1e6;
   width: 100%;
   border-radius: 25px;
-  padding: 1rem;
-  gap: 0.85rem;
+  padding: 0.75rem;
+  gap: 0.55rem;
 `;
 
 const TreeInfoText = styled.div`
@@ -76,14 +80,13 @@ const GraphCard = styled.div`
   width: 100%;
   background: rgba(255, 255, 255, 0.7);
   border-radius: 18px;
-  padding: 0.75rem;
+  padding: 0.45rem;
 `;
 
 const LevelCard = styled.section`
-  margin-top: 0.85rem;
   background: linear-gradient(165deg, #faf1e6 0%, #f4eadc 55%, #efe3d3 100%);
   border-radius: 25px;
-  padding: 1rem 1rem 1.1rem;
+  padding: 0.72rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 `;
 
@@ -98,12 +101,12 @@ const LevelHeading = styled.div`
   color: #3d8d7a;
 
   h3 {
-    font-size: 1.04rem;
-    margin-bottom: 0.2rem;
+    font-size: 0.96rem;
+    margin-bottom: 0.12rem;
   }
 
   p {
-    font-size: 0.83rem;
+    font-size: 0.74rem;
     color: #6f8476;
   }
 `;
@@ -112,14 +115,14 @@ const BadgePill = styled.div`
   background: linear-gradient(140deg, #3d8d7a 0%, #6aa58f 100%);
   color: #ffffff;
   border-radius: 999px;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.77rem;
+  padding: 0.26rem 0.58rem;
+  font-size: 0.69rem;
   font-weight: 700;
   white-space: nowrap;
 `;
 
 const LevelStatGrid = styled.div`
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
@@ -128,38 +131,38 @@ const LevelStatGrid = styled.div`
 const StatCard = styled.div`
   background: rgba(255, 255, 255, 0.75);
   border-radius: 12px;
-  padding: 0.5rem 0.6rem;
+  padding: 0.4rem 0.5rem;
   text-align: center;
 `;
 
 const StatLabel = styled.p`
   color: #819586;
-  font-size: 0.73rem;
+  font-size: 0.67rem;
 `;
 
 const StatValue = styled.p`
   color: #3d8d7a;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
   margin-top: 0.1rem;
 `;
 
 const NextLevelCard = styled.div`
-  margin-top: 0.75rem;
+  margin-top: 0.48rem;
   background: rgba(255, 255, 255, 0.72);
   border-radius: 14px;
-  padding: 0.7rem;
+  padding: 0.58rem;
 `;
 
 const NextLevelText = styled.p`
   color: #476154;
-  font-size: 0.84rem;
+  font-size: 0.74rem;
 `;
 
 const NextLevelTrack = styled.div`
-  margin-top: 0.45rem;
+  margin-top: 0.3rem;
   width: 100%;
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
   background: #d7e7dd;
   overflow: hidden;
@@ -239,7 +242,7 @@ const Notice = styled.p`
 `;
 
 const LevelActionRow = styled.div`
-  margin-top: 0.72rem;
+  margin-top: 0.45rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -248,15 +251,15 @@ const LevelActionRow = styled.div`
 
 const LevelHint = styled.p`
   color: #6f8476;
-  font-size: 0.78rem;
+  font-size: 0.71rem;
   text-align: left;
 `;
 
 const OpenModalButton = styled.button`
   border: none;
   border-radius: 999px;
-  padding: 0.42rem 0.78rem;
-  font-size: 0.78rem;
+  padding: 0.36rem 0.64rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #ffffff;
   background: #3d8d7a;
@@ -267,24 +270,26 @@ const OpenModalButton = styled.button`
   }
 `;
 
-const FullscreenModal = styled.div`
+const ModalOverlay = styled.div`
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
   z-index: 1000;
-  background: rgba(26, 42, 35, 0.34);
+  background: rgba(26, 42, 35, 0.42);
   backdrop-filter: blur(4px);
   display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 `;
 
 const ModalSheet = styled.section`
-  width: 100%;
-  height: 100%;
+  width: min(92vw, 430px);
+  max-height: min(82vh, 720px);
   background: linear-gradient(175deg, #f7eee2 0%, #f0e5d6 100%);
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
+  border-radius: 22px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 0.92rem;
 `;
 
 const ModalHeader = styled.header`
@@ -311,9 +316,10 @@ const CloseModalButton = styled.button`
 `;
 
 const ModalBody = styled.div`
-  margin-top: 0.75rem;
+  margin-top: 0.62rem;
   overflow-y: auto;
-  padding-bottom: 1.1rem;
+  padding-right: 2px;
+  padding-bottom: 0.2rem;
 `;
 
 const getTreeName = (weeklyCount: number) => {
@@ -441,6 +447,15 @@ export default function MyGarden() {
   const recentLevelUp = levelHistories[0] ?? null;
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isLevelModalOpen) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -460,7 +475,7 @@ export default function MyGarden() {
   }, [isLevelModalOpen]);
 
   return (
-    <Wrapper marginBottom>
+    <Wrapper>
       <PageHeader title="내 정원 조회" />
       <PageContainer>
         {isLoading && <Loading />}
@@ -558,7 +573,7 @@ export default function MyGarden() {
             )}
 
             {isMyGarden && levelProgress && isLevelModalOpen && (
-              <FullscreenModal role="dialog" aria-modal="true" aria-label="레벨 상세 정보">
+              <ModalOverlay role="dialog" aria-modal="true" aria-label="레벨 상세 정보">
                 <ModalSheet>
                   <ModalHeader>
                     <ModalTitle>레벨 상세 정보</ModalTitle>
@@ -600,7 +615,7 @@ export default function MyGarden() {
                     </HistoryList>
                   </ModalBody>
                 </ModalSheet>
-              </FullscreenModal>
+              </ModalOverlay>
             )}
           </>
         )}
