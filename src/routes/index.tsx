@@ -12,6 +12,9 @@ import CheckMember from '@/pages/check/CheckMember';
 import Participant from '@/pages/participant/Participant';
 import MyGarden from '@/pages/mygarden/MyGarden';
 import Greenhouse from '@/pages/greenhouse/Greenhouse';
+import MailSettingsPage from '@/pages/settings/MailSettingsPage';
+import AdminConsolePage from '@/pages/admin/AdminConsolePage';
+import SystemStatusPage from '@/pages/system/SystemStatusPage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -39,12 +42,16 @@ export const router = createBrowserRouter([
           { path: 'watering', element: <Proof /> },
           { path: 'watering/write', element: <WritePage /> },
           { path: 'watering/:postId', element: <ReadPage /> },
+          { path: 'watering/:postId/edit', element: <WritePage /> },
           { path: 'laydown', element: <CheckMember /> },
           { path: 'farmer', element: <Participant /> },
           // { path: 'mygarden', element: <MyGarden /> },
           { path: 'mygarden', element: <MyGarden /> },
           { path: 'mygarden/:userId', element: <MyGarden /> },
           { path: 'greenhouse', element: <Greenhouse /> },
+          { path: 'settings/mail', element: <MailSettingsPage /> },
+          { path: 'admin', element: <AdminConsolePage /> },
+          { path: 'system', element: <SystemStatusPage /> },
         ],
       },
       {

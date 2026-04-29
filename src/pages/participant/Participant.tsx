@@ -104,7 +104,7 @@ export default function Participant() {
   }, []);
 
   const commitCountMap = useMemo(() => {
-    return weeklyStats.reduce<Record<string, string>>((acc, stat) => {
+    return weeklyStats.reduce<Record<string, number>>((acc, stat) => {
       acc[stat.username] = stat.commitCount;
       return acc;
     }, {});

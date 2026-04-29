@@ -5,7 +5,12 @@ import PageHeader from '@/components/PageHeader';
 import Container from '@/styles/Container';
 import SearchBar from '@/components/SearchBar';
 import { FooterPagination } from '@/styles/FooterPagination';
-import { getGeekNews } from '@/api/geeknews';
+import {
+  getGeekNews,
+  getMyBookmarkedGeekNews,
+  markGeekNewsRead,
+  toggleGeekNewsBookmark,
+} from '@/api/geeknews';
 import type { GeekNewsResponseDto } from '@/types/api';
 import { getErrorMessage } from '@/utils/error';
 
@@ -16,8 +21,25 @@ const Intro = styled.p`
 
 const SearchHeader = styled.header`
   display: flex;
-  justify-content: flex-end;
+   justify-content: space-between;
+   align-items: center;
+   gap: 0.7rem;
   margin-bottom: 1rem;
+`;
+
+const ModeSwitch = styled.div`
+  display: flex;
+  gap: 0.35rem;
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: ${({ $active }) => ($active ? '#3d8d7a' : '#dad6d2')};
+  color: ${({ $active }) => ($active ? '#fff' : '#57504c')};
 `;
 
 const List = styled.ul`
@@ -92,6 +114,17 @@ const LinkButton = styled.a`
   }
 `;
 
+const BookmarkButton = styled.button<{ $active: boolean }>`
+  border: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: ${({ $active }) => ($active ? '#ffffff' : '#3d8d7a')};
+  background: ${({ $active }) => ($active ? '#3d8d7a' : '#eef5f3')};
+`;
+
 const Notice = styled.p`
   color: var(--color-content-font);
   text-align: center;
@@ -117,6 +150,7 @@ export default function Greenhouse() {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [viewMode, setViewMode] = useState<'all' | 'bookmarks'>('all');
   const PAGE_SIZE = 6;
 
   useEffect(() => {
@@ -125,11 +159,14 @@ export default function Greenhouse() {
       setErrorMessage('');
 
       try {
-        const response = await getGeekNews({
-          page: currentPage,
-          size: PAGE_SIZE,
-          keyword: keyword.trim() || undefined,
-        });
+        const response =
+          viewMode === 'bookmarks'
+            ? await getMyBookmarkedGeekNews({ page: currentPage, size: PAGE_SIZE })
+            : await getGeekNews({
+                page: currentPage,
+                size: PAGE_SIZE,
+                keyword: keyword.trim() || undefined,
+              });
 
         setItems(response.data.items);
         setTotalPages(response.data.totalPages);
@@ -141,7 +178,51 @@ export default function Greenhouse() {
     };
 
     fetchNews();
-  }, [currentPage, keyword]);
+  }, [currentPage, keyword, viewMode]);
+
+  const handleBookmark = async (item: GeekNewsResponseDto) => {
+    if (!item.id) return;
+    try {
+      const response = await toggleGeekNewsBookmark(item.id, !item.bookmarked);
+      setItems((prev) =>
+        prev.map((news) =>
+          news.id === item.id
+            ? {
+                ...news,
+                bookmarked: response.data.bookmarked,
+                read: response.data.read,
+                readAt: response.data.readAt,
+              }
+            : news
+        )
+      );
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, '북마크 변경에 실패했어요.'));
+    }
+  };
+
+  const handleReadAndOpen = async (item: GeekNewsResponseDto) => {
+    if (item.id) {
+      try {
+        const response = await markGeekNewsRead(item.id);
+        setItems((prev) =>
+          prev.map((news) =>
+            news.id === item.id
+              ? {
+                  ...news,
+                  bookmarked: response.data.bookmarked,
+                  read: response.data.read,
+                  readAt: response.data.readAt,
+                }
+              : news
+          )
+        );
+      } catch {
+        // 읽음 처리 실패 시에도 원문 이동은 허용한다.
+      }
+    }
+    window.open(item.link, '_blank', 'noopener,noreferrer');
+  };
 
   const hasResult = useMemo(() => items.length > 0, [items]);
 
@@ -152,6 +233,28 @@ export default function Greenhouse() {
         <Intro>GeekNews 최신 동향을 정원에서 바로 확인해보세요.</Intro>
 
         <SearchHeader>
+          <ModeSwitch>
+            <ModeButton
+              type="button"
+              $active={viewMode === 'all'}
+              onClick={() => {
+                setViewMode('all');
+                setCurrentPage(0);
+              }}
+            >
+              전체
+            </ModeButton>
+            <ModeButton
+              type="button"
+              $active={viewMode === 'bookmarks'}
+              onClick={() => {
+                setViewMode('bookmarks');
+                setCurrentPage(0);
+              }}
+            >
+              북마크
+            </ModeButton>
+          </ModeSwitch>
           <SearchBar
             placeholder="키워드 검색"
             value={keyword}
@@ -159,6 +262,7 @@ export default function Greenhouse() {
               setKeyword(event.target.value);
               setCurrentPage(0);
             }}
+            disabled={viewMode === 'bookmarks'}
           />
         </SearchHeader>
 
@@ -175,13 +279,33 @@ export default function Greenhouse() {
 
                 return (
                   <NewsCard key={news.id ?? news.sourceId}>
-                    <NewsTitle>{title}</NewsTitle>
+                    <NewsTitle>
+                      {news.read ? '✓ ' : ''}
+                      {title}
+                    </NewsTitle>
                     <Summary>{summary}</Summary>
                     <Meta>
                       <DateText>{formatPublishedAt(news.publishedAt)}</DateText>
-                      <LinkButton href={news.link} target="_blank" rel="noreferrer">
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <BookmarkButton
+                          type="button"
+                          $active={news.bookmarked}
+                          onClick={() => handleBookmark(news)}
+                        >
+                          {news.bookmarked ? '저장됨' : '저장'}
+                        </BookmarkButton>
+                        <LinkButton
+                          href={news.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handleReadAndOpen(news);
+                          }}
+                        >
                         원문 보기
-                      </LinkButton>
+                        </LinkButton>
+                      </div>
                     </Meta>
                   </NewsCard>
                 );

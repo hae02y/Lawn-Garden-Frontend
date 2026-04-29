@@ -6,6 +6,7 @@ interface SearchBarProps {
   placeholder?: string;
   value?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
+  disabled?: boolean;
 }
 
 const SearchWrapper = styled.div`
@@ -25,6 +26,11 @@ const Search = styled.input`
   &:focus {
     outline: none;
   }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 `;
 
 const Icon = styled.img`
@@ -37,10 +43,10 @@ const Icon = styled.img`
   pointer-events: none;
 `;
 
-export default function SearchBar({ placeholder = '검색', value, onChange }: SearchBarProps) {
+export default function SearchBar({ placeholder = '검색', value, onChange, disabled = false }: SearchBarProps) {
   return (
     <SearchWrapper>
-      <Search placeholder={placeholder} value={value ?? ''} onChange={onChange} />
+      <Search placeholder={placeholder} value={value ?? ''} onChange={onChange} disabled={disabled} />
       <Icon src={searchIcon} alt="Search" />
     </SearchWrapper>
   );

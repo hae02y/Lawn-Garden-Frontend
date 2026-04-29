@@ -95,6 +95,7 @@ export default function Main() {
   const userId = useAuthStore((state) => state.userId);
   const username = useAuthStore((state) => state.username);
   const [levelName, setLevelName] = useState('처음 심은 새싹');
+  const [levelBadge, setLevelBadge] = useState('SPROUT');
   const [mailStatus, setMailStatus] = useState<MailStatus | null>(null);
   const [isMailLoading, setIsMailLoading] = useState(false);
   const [mailErrorMessage, setMailErrorMessage] = useState('');
@@ -110,6 +111,7 @@ export default function Main() {
         }
         setUsername(meRes.data.username);
         setLevelName(meRes.data.levelName || '처음 심은 새싹');
+        setLevelBadge(meRes.data.levelBadge || 'SPROUT');
 
         const mailRes = await getMyMailStatus();
         setMailStatus(mailRes.data.status);
@@ -163,7 +165,7 @@ export default function Main() {
           님!
         </h2>
         <p>
-          당신의 레벨: <span>{levelName}</span>
+          당신의 레벨: <span>{levelName}</span> · <span>{levelBadge}</span>
         </p>
       </HeaderText>
 
@@ -220,6 +222,24 @@ export default function Main() {
           text="비닐하우스"
           angle={6}
           onClick={() => navigate('/greenhouse')}
+        />
+        <ArrowButton
+          direction="right"
+          text="메일 설정"
+          angle={-3}
+          onClick={() => navigate('/settings/mail')}
+        />
+        <ArrowButton
+          direction="left"
+          text="운영 센터"
+          angle={4}
+          onClick={() => navigate('/admin')}
+        />
+        <ArrowButton
+          direction="right"
+          text="시스템 상태"
+          angle={-2}
+          onClick={() => navigate('/system')}
         />
         <ArrowButton direction="center" text="로그아웃" angle={2} onClick={handleLogout} />
       </SignsSection>

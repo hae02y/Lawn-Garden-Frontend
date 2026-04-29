@@ -1,6 +1,10 @@
 import axios from './axios';
 import type { AxiosResponse } from 'axios';
-import type { UserDetailResponseDto } from '@/types/api';
+import type {
+  UserDetailResponseDto,
+  UserLevelHistoryResponseDto,
+  UserLevelProgressResponseDto,
+} from '@/types/api';
 
 export const getAllUsers = async (): Promise<AxiosResponse<UserDetailResponseDto[]>> => {
   return await axios.get('/api/v1/users');
@@ -21,5 +25,17 @@ export const getTodayUsers = async (
 ): Promise<AxiosResponse<UserDetailResponseDto[]>> => {
   return await axios.get('/api/v1/users/today', {
     params: { commit },
+  });
+};
+
+export const getMyLevelProgress = async (): Promise<AxiosResponse<UserLevelProgressResponseDto>> => {
+  return await axios.get('/api/v1/users/me/level-progress');
+};
+
+export const getMyLevelHistory = async (
+  size = 20
+): Promise<AxiosResponse<UserLevelHistoryResponseDto[]>> => {
+  return await axios.get('/api/v1/users/me/level-history', {
+    params: { size },
   });
 };

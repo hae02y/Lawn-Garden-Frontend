@@ -29,3 +29,14 @@ export const createPost = async (
 ): Promise<AxiosResponse<void>> => {
   return await axios.post('/api/v1/posts', formData);
 };
+
+export const updatePost = async (
+  postId: number | string,
+  formData: FormData
+): Promise<AxiosResponse<PostDetailDto>> => {
+  return await axios.patch(`/api/v1/posts/${postId}`, formData);
+};
+
+export const deletePost = async (postId: number | string): Promise<AxiosResponse<void>> => {
+  return await axios.delete(`/api/v1/posts/${postId}`);
+};

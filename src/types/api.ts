@@ -4,13 +4,35 @@ export interface UserDetailResponseDto {
   email: string;
   level: number;
   levelName: string;
+  levelBadge: string;
+}
+
+export interface UserLevelProgressResponseDto {
+  currentLevel: number;
+  currentLevelName: string;
+  currentBadge: string;
+  postCount: number;
+  nextLevel: number | null;
+  nextLevelName: string | null;
+  nextLevelMinPostCount: number | null;
+  remainingPostCount: number;
+}
+
+export interface UserLevelHistoryResponseDto {
+  id: number | null;
+  previousLevel: number;
+  previousLevelName: string;
+  newLevel: number;
+  newLevelName: string;
+  postCount: number;
+  changedAt: string | null;
 }
 
 export interface UserStatsResponseDto {
   id: number | null;
   username: string;
   email: string;
-  commitCount: string;
+  commitCount: number;
 }
 
 export interface LoginRequest {
@@ -72,6 +94,9 @@ export interface GeekNewsResponseDto {
   link: string;
   summary: string | null;
   publishedAt: string | null;
+  bookmarked: boolean;
+  read: boolean;
+  readAt: string | null;
 }
 
 export interface GeekNewsListResponseDto {
@@ -84,7 +109,66 @@ export interface GeekNewsListResponseDto {
 }
 
 export type MailStatus = 'ON' | 'OFF';
+export type MailCategory = 'BACKEND' | 'FRONTEND' | 'AI' | 'NONE';
+export type Weekday =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
 
 export interface MailStatusResponseDto {
   status: MailStatus;
+}
+
+export interface MailSettingsResponseDto {
+  status: MailStatus;
+  preferredDays: Weekday[];
+  preferredHour: number;
+  categories: MailCategory[];
+}
+
+export interface MailSettingsRequestDto {
+  status: MailStatus;
+  preferredDays: Weekday[];
+  preferredHour: number;
+  categories: MailCategory[];
+}
+
+export interface GeekNewsStateResponseDto {
+  articleId: number;
+  bookmarked: boolean;
+  read: boolean;
+  readAt: string | null;
+}
+
+export interface AdminSyncResponseDto {
+  success: boolean;
+  message: string;
+  affectedCount: number;
+}
+
+export interface GeekNewsSyncLogResponseDto {
+  id: number | null;
+  requestedLimit: number;
+  insertedCount: number;
+  success: boolean;
+  message: string;
+  createdAt: string | null;
+}
+
+export interface SystemStatusResponseDto {
+  status: string;
+  version: string;
+  serverTime: string;
+  docsUrl: string;
+  errorCodesUrl: string;
+}
+
+export interface ErrorCodeDocItem {
+  code: string;
+  httpStatus: string;
+  description: string;
 }

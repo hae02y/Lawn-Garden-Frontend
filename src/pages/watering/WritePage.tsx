@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import styled from 'styled-components';
 import Wrapper from '@/styles/Wrapper';
 import BlockLabel from '@/styles/BlockLabel';
@@ -6,9 +6,11 @@ import PageHeader from '@/components/PageHeader';
 import Container from '@/styles/Container';
 import ProofItem from '@/components/ProofItem';
 import Button from '@/components/Button';
-import { createPost } from '@/api/post';
-import { useNavigate } from 'react-router-dom';
+import { createPost, getPostById, updatePost } from '@/api/post';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getErrorMessage } from '@/utils/error';
+import Loading from '@/components/Loading';
+import { API_BASE_URL } from '@/api/config';
 
 const PhotoBlock = styled.div`
   display: flex;
@@ -86,17 +88,48 @@ const Notice = styled.p`
   margin-top: 0.75rem;
 `;
 
+const resolveImageUrl = (image: string) => {
+  if (/^https?:\/\//i.test(image)) return image;
+  return `${API_BASE_URL}/images/${encodeURIComponent(image)}`;
+};
+
 export default function WritePage() {
+  const { postId } = useParams();
   const navigate = useNavigate();
+  const isEditMode = Boolean(postId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [contents, setContents] = useState('');
   const [link, setLink] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    if (!isEditMode || !postId) return;
+
+    const fetchPost = async () => {
+      setIsLoading(true);
+      setErrorMessage('');
+      try {
+        const res = await getPostById(postId);
+        setContents(res.data.contents ?? '');
+        setLink(res.data.link ?? '');
+        if (res.data.image) {
+          setPreviewUrl(resolveImageUrl(res.data.image));
+        }
+      } catch (error: unknown) {
+        setErrorMessage(getErrorMessage(error, '수정할 글을 불러오지 못했어요.'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPost();
+  }, [isEditMode, postId]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -118,14 +151,21 @@ export default function WritePage() {
   const handleSubmit = async () => {
     setErrorMessage('');
 
-    if (!selectedFile || !contents.trim()) {
-      setErrorMessage('이미지와 한마디는 필수로 입력해주세요!');
+    if (!contents.trim()) {
+      setErrorMessage('한마디는 필수로 입력해주세요!');
+      return;
+    }
+
+    if (!isEditMode && !selectedFile) {
+      setErrorMessage('새 글 등록 시 이미지는 필수입니다.');
       return;
     }
 
     const formData = new FormData();
     formData.append('contents', contents);
-    formData.append('imageFile', selectedFile);
+    if (selectedFile) {
+      formData.append('imageFile', selectedFile);
+    }
 
     if (link.trim()) {
       formData.append('link', link.trim());
@@ -133,19 +173,26 @@ export default function WritePage() {
 
     try {
       setIsSubmitting(true);
-      await createPost(formData);
-      alert('물주기 글이 작성되었습니다!');
+      if (isEditMode && postId) {
+        await updatePost(postId, formData);
+        alert('물주기 글이 수정되었습니다!');
+      } else {
+        await createPost(formData);
+        alert('물주기 글이 작성되었습니다!');
+      }
       navigate('/watering');
     } catch (error: unknown) {
-      setErrorMessage(getErrorMessage(error, '글 작성에 실패했어요.'));
+      setErrorMessage(getErrorMessage(error, isEditMode ? '글 수정에 실패했어요.' : '글 작성에 실패했어요.'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (isLoading) return <Loading />;
+
   return (
     <Wrapper>
-      <PageHeader title="오늘의 잔디정원" />
+      <PageHeader title={isEditMode ? '물주기 글 수정' : '오늘의 잔디정원'} />
       <Container>
         <ProofItem date={today} writer="나" />
 
@@ -183,7 +230,7 @@ export default function WritePage() {
         </Block2>
 
         <Button $marginB="0px" $bgColor="#A3D1C6" onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? '저장 중...' : '글 작성하기'}
+          {isSubmitting ? '저장 중...' : isEditMode ? '글 수정하기' : '글 작성하기'}
         </Button>
         {errorMessage && <Notice>{errorMessage}</Notice>}
       </Container>

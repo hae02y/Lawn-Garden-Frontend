@@ -6,10 +6,15 @@ import PageHeader from '@/components/PageHeader';
 import Loading from '@/components/Loading';
 import { FrameViewport } from '@/components/FrameViewport';
 import ProgressBar from '@/components/ProgressBar';
-import { getUserById } from '@/api/user';
+import { getMyLevelHistory, getMyLevelProgress, getUserById } from '@/api/user';
 import { getTodayStats, getWeeklyStats } from '@/api/stats';
 import { useAuthStore } from '@/store/authStore';
-import type { UserDetailResponseDto, UserStatsResponseDto } from '@/types/api';
+import type {
+  UserDetailResponseDto,
+  UserLevelHistoryResponseDto,
+  UserLevelProgressResponseDto,
+  UserStatsResponseDto,
+} from '@/types/api';
 import { getErrorMessage } from '@/utils/error';
 
 const PageContainer = styled.section`
@@ -74,6 +79,27 @@ const GraphCard = styled.div`
   padding: 0.75rem;
 `;
 
+const LevelCard = styled.section`
+  margin-top: 0.85rem;
+  background: #faf1e6;
+  border-radius: 25px;
+  padding: 1rem;
+`;
+
+const HistoryList = styled.ul`
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+`;
+
+const HistoryItem = styled.li`
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 10px;
+  padding: 0.6rem;
+`;
+
 const Notice = styled.p`
   color: #6b6b6b;
   text-align: center;
@@ -92,6 +118,8 @@ export default function MyGarden() {
   const [user, setUser] = useState<UserDetailResponseDto | null>(null);
   const [weeklyStats, setWeeklyStats] = useState<UserStatsResponseDto[]>([]);
   const [todayStats, setTodayStats] = useState<UserStatsResponseDto[]>([]);
+  const [levelProgress, setLevelProgress] = useState<UserLevelProgressResponseDto | null>(null);
+  const [levelHistories, setLevelHistories] = useState<UserLevelHistoryResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -102,6 +130,7 @@ export default function MyGarden() {
   }, [userId]);
 
   const effectiveUserId = normalizedUserId ?? storedUserId ?? null;
+  const isMyGarden = !!storedUserId && effectiveUserId === storedUserId;
 
   useEffect(() => {
     if (!effectiveUserId) {
@@ -114,15 +143,19 @@ export default function MyGarden() {
       setErrorMessage('');
 
       try {
-        const [userRes, weeklyRes, todayRes] = await Promise.all([
+        const [userRes, weeklyRes, todayRes, myProgressRes, myHistoryRes] = await Promise.all([
           getUserById(effectiveUserId),
           getWeeklyStats(),
           getTodayStats(),
+          isMyGarden ? getMyLevelProgress() : Promise.resolve(null),
+          isMyGarden ? getMyLevelHistory(10) : Promise.resolve(null),
         ]);
 
         setUser(userRes.data);
         setWeeklyStats(weeklyRes.data);
         setTodayStats(todayRes.data);
+        setLevelProgress(myProgressRes?.data ?? null);
+        setLevelHistories(myHistoryRes?.data ?? []);
       } catch (error: unknown) {
         setErrorMessage(getErrorMessage(error, '유저 정보를 불러오지 못했어요.'));
       } finally {
@@ -131,18 +164,18 @@ export default function MyGarden() {
     };
 
     fetchUser();
-  }, [effectiveUserId]);
+  }, [effectiveUserId, isMyGarden]);
 
   const weeklyCount = useMemo(() => {
     if (!user?.username) return 0;
     const match = weeklyStats.find((item) => item.username === user.username);
-    return Number(match?.commitCount ?? 0);
+    return match?.commitCount ?? 0;
   }, [user, weeklyStats]);
 
   const todayCount = useMemo(() => {
     if (!user?.username) return 0;
     const match = todayStats.find((item) => item.username === user.username);
-    return Number(match?.commitCount ?? 0);
+    return match?.commitCount ?? 0;
   }, [user, todayStats]);
 
   const themeMode = new Date().getHours() >= 6 && new Date().getHours() < 18 ? 'morning' : 'night';
@@ -166,7 +199,7 @@ export default function MyGarden() {
                   <span>{user.username}</span> 님의 정원
                 </h2>
                 <h4>
-                  당신의 레벨 : <span>Lv.{user.level} {user.levelName}</span>
+                  당신의 레벨 : <span>Lv.{user.level} {user.levelName}</span> · <span>{user.levelBadge}</span>
                 </h4>
               </UserInfoText>
             </UserInfoBox>
@@ -197,6 +230,30 @@ export default function MyGarden() {
                 />
               </GraphCard>
             </TreeInfoBox>
+
+            {isMyGarden && levelProgress && (
+              <LevelCard>
+                <h3>레벨 진행도</h3>
+                <p>
+                  총 인증 {levelProgress.postCount}회 · 현재 배지 {levelProgress.currentBadge}
+                </p>
+                <p>
+                  {levelProgress.nextLevelName
+                    ? `다음 레벨(${levelProgress.nextLevelName})까지 ${levelProgress.remainingPostCount}회 남았어요.`
+                    : '최고 레벨을 달성했어요!'}
+                </p>
+
+                <HistoryList>
+                  {levelHistories.length === 0 && <HistoryItem>아직 레벨업 이력이 없어요.</HistoryItem>}
+                  {levelHistories.map((history) => (
+                    <HistoryItem key={history.id ?? `${history.newLevel}-${history.changedAt}`}>
+                      Lv.{history.previousLevel} {history.previousLevelName} → Lv.{history.newLevel}{' '}
+                      {history.newLevelName} (누적 {history.postCount}회)
+                    </HistoryItem>
+                  ))}
+                </HistoryList>
+              </LevelCard>
+            )}
           </>
         )}
       </PageContainer>

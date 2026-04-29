@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Wrapper from '@/styles/Wrapper';
 import BlockLabel from '@/styles/BlockLabel';
@@ -7,10 +7,11 @@ import PageHeader from '@/components/PageHeader';
 import Container from '@/styles/Container';
 import ProofItem from '@/components/ProofItem';
 import Loading from '@/components/Loading';
-import { getPostById } from '@/api/post';
+import { deletePost, getPostById } from '@/api/post';
 import { API_BASE_URL } from '@/api/config';
 import type { PostDetailDto } from '@/types/api';
 import { getErrorMessage } from '@/utils/error';
+import { useAuthStore } from '@/store/authStore';
 
 const PhotoBlock = styled.div`
   display: flex;
@@ -42,15 +43,35 @@ const Notice = styled.p`
   padding: 1rem 0;
 `;
 
+const ActionRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+`;
+
+const ActionButton = styled.button<{ $danger?: boolean }>`
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: ${({ $danger }) => ($danger ? '#c54f4f' : '#3d8d7a')};
+`;
+
 const resolveImageUrl = (image: string) => {
   if (/^https?:\/\//i.test(image)) return image;
   return `${API_BASE_URL}/images/${encodeURIComponent(image)}`;
 };
 
 export default function ReadPage() {
+  const navigate = useNavigate();
   const { postId } = useParams();
+  const userId = useAuthStore((state) => state.userId);
   const [post, setPost] = useState<PostDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -76,6 +97,28 @@ export default function ReadPage() {
 
     fetchPost();
   }, [postId]);
+
+  const isMine = useMemo(() => {
+    if (!post?.user?.id || !userId) return false;
+    return post.user.id === userId;
+  }, [post, userId]);
+
+  const handleDelete = async () => {
+    if (!postId || isDeleting) return;
+    const confirmed = window.confirm('이 글을 삭제할까요? 삭제 후 복구할 수 없어요.');
+    if (!confirmed) return;
+
+    try {
+      setIsDeleting(true);
+      await deletePost(postId);
+      alert('글이 삭제되었습니다.');
+      navigate('/watering');
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, '글 삭제에 실패했어요.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isLoading) return <Loading />;
 
@@ -115,6 +158,17 @@ export default function ReadPage() {
                   </a>
                 </Block2>
               </>
+            )}
+
+            {isMine && (
+              <ActionRow>
+                <ActionButton type="button" onClick={() => navigate(`/watering/${postId}/edit`)}>
+                  수정
+                </ActionButton>
+                <ActionButton type="button" $danger onClick={handleDelete} disabled={isDeleting}>
+                  {isDeleting ? '삭제 중...' : '삭제'}
+                </ActionButton>
+              </ActionRow>
             )}
           </>
         )}
