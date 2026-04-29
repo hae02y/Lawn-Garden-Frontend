@@ -13,8 +13,6 @@ import Participant from '@/pages/participant/Participant';
 import MyGarden from '@/pages/mygarden/MyGarden';
 import Greenhouse from '@/pages/greenhouse/Greenhouse';
 import MailSettingsPage from '@/pages/settings/MailSettingsPage';
-import AdminConsolePage from '@/pages/admin/AdminConsolePage';
-import SystemStatusPage from '@/pages/system/SystemStatusPage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -50,8 +48,6 @@ export const router = createBrowserRouter([
           { path: 'mygarden/:userId', element: <MyGarden /> },
           { path: 'greenhouse', element: <Greenhouse /> },
           { path: 'settings/mail', element: <MailSettingsPage /> },
-          { path: 'admin', element: <AdminConsolePage /> },
-          { path: 'system', element: <SystemStatusPage /> },
         ],
       },
       {

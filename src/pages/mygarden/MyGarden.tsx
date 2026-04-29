@@ -81,9 +81,130 @@ const GraphCard = styled.div`
 
 const LevelCard = styled.section`
   margin-top: 0.85rem;
-  background: #faf1e6;
+  background: linear-gradient(165deg, #faf1e6 0%, #f4eadc 55%, #efe3d3 100%);
   border-radius: 25px;
-  padding: 1rem;
+  padding: 1rem 1rem 1.1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+`;
+
+const LevelHeader = styled.header`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+`;
+
+const LevelHeading = styled.div`
+  color: #3d8d7a;
+
+  h3 {
+    font-size: 1.04rem;
+    margin-bottom: 0.2rem;
+  }
+
+  p {
+    font-size: 0.83rem;
+    color: #6f8476;
+  }
+`;
+
+const BadgePill = styled.div`
+  background: linear-gradient(140deg, #3d8d7a 0%, #6aa58f 100%);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.77rem;
+  font-weight: 700;
+  white-space: nowrap;
+`;
+
+const LevelStatGrid = styled.div`
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+`;
+
+const StatCard = styled.div`
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 12px;
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+`;
+
+const StatLabel = styled.p`
+  color: #819586;
+  font-size: 0.73rem;
+`;
+
+const StatValue = styled.p`
+  color: #3d8d7a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 0.1rem;
+`;
+
+const NextLevelCard = styled.div`
+  margin-top: 0.75rem;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  padding: 0.7rem;
+`;
+
+const NextLevelText = styled.p`
+  color: #476154;
+  font-size: 0.84rem;
+`;
+
+const NextLevelTrack = styled.div`
+  margin-top: 0.45rem;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #d7e7dd;
+  overflow: hidden;
+`;
+
+const NextLevelTrackFill = styled.div<{ $percent: number }>`
+  width: ${({ $percent }) => `${$percent}%`};
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6ab495 0%, #3d8d7a 100%);
+`;
+
+const BadgeCollection = styled.div`
+  margin-top: 0.8rem;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  padding: 0.72rem;
+`;
+
+const BadgeCollectionTitle = styled.p`
+  color: #4d6b5d;
+  font-size: 0.82rem;
+  font-weight: 700;
+`;
+
+const BadgeCollectionGrid = styled.div`
+  margin-top: 0.48rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+`;
+
+const BadgeChip = styled.div<{ $active: boolean }>`
+  border-radius: 10px;
+  padding: 0.42rem 0.5rem;
+  font-size: 0.77rem;
+  font-weight: 700;
+  color: ${({ $active }) => ($active ? '#2f5f51' : '#9ba99f')};
+  background: ${({ $active }) => ($active ? '#dcf0e6' : '#f1efec')};
+`;
+
+const HistoryTitle = styled.h4`
+  margin-top: 0.9rem;
+  color: #3d8d7a;
+  font-size: 0.95rem;
 `;
 
 const HistoryList = styled.ul`
@@ -96,8 +217,20 @@ const HistoryList = styled.ul`
 
 const HistoryItem = styled.li`
   background: rgba(255, 255, 255, 0.75);
-  border-radius: 10px;
-  padding: 0.6rem;
+  border-radius: 12px;
+  padding: 0.62rem 0.68rem;
+`;
+
+const HistoryLine = styled.div`
+  color: #355f52;
+  font-size: 0.85rem;
+  font-weight: 600;
+`;
+
+const HistoryMeta = styled.div`
+  color: #768d7f;
+  font-size: 0.76rem;
+  margin-top: 0.2rem;
 `;
 
 const Notice = styled.p`
@@ -110,6 +243,37 @@ const getTreeName = (weeklyCount: number) => {
   if (weeklyCount >= 12) return '든든한 중간나무';
   if (weeklyCount >= 5) return '쑥쑥 자라는 새싹나무';
   return '처음 심은 새싹';
+};
+
+const badgeInfoMap: Record<string, { emoji: string; label: string }> = {
+  SPROUT: { emoji: '🌱', label: '새싹 배지' },
+  SAPLING: { emoji: '🌿', label: '새나무 배지' },
+  GROWING_TREE: { emoji: '🌳', label: '성장나무 배지' },
+  BIG_TREE: { emoji: '🌲', label: '큰나무 배지' },
+  MASTER_GARDENER: { emoji: '👑', label: '마스터 정원사 배지' },
+};
+
+const badgeOrder = [
+  { level: 1, key: 'SPROUT' },
+  { level: 2, key: 'SAPLING' },
+  { level: 3, key: 'GROWING_TREE' },
+  { level: 4, key: 'BIG_TREE' },
+  { level: 5, key: 'MASTER_GARDENER' },
+] as const;
+
+const levelFloorMap: Record<number, number> = {
+  1: 0,
+  2: 7,
+  3: 15,
+  4: 30,
+  5: 60,
+};
+
+const formatHistoryDate = (value: string | null) => {
+  if (!value) return '시간 정보 없음';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '시간 정보 없음';
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
 };
 
 export default function MyGarden() {
@@ -183,6 +347,18 @@ export default function MyGarden() {
   const progressTotal = 20;
   const progressValue = Math.min(progressTotal, weeklyCount);
   const githubId = user?.username ?? 'gardener';
+  const badgeInfo = badgeInfoMap[levelProgress?.currentBadge ?? user?.levelBadge ?? 'SPROUT'] ?? {
+    emoji: '🌱',
+    label: '새싹 배지',
+  };
+  const levelProgressPercent = useMemo(() => {
+    if (!levelProgress?.nextLevelMinPostCount) return 100;
+    const currentFloor = levelFloorMap[levelProgress.currentLevel] ?? 0;
+    const nextFloor = levelProgress.nextLevelMinPostCount;
+    const totalGap = Math.max(1, nextFloor - currentFloor);
+    const currentGap = Math.max(0, levelProgress.postCount - currentFloor);
+    return Math.min(100, Math.round((currentGap / totalGap) * 100));
+  }, [levelProgress]);
 
   return (
     <Wrapper marginBottom>
@@ -233,22 +409,70 @@ export default function MyGarden() {
 
             {isMyGarden && levelProgress && (
               <LevelCard>
-                <h3>레벨 진행도</h3>
-                <p>
-                  총 인증 {levelProgress.postCount}회 · 현재 배지 {levelProgress.currentBadge}
-                </p>
-                <p>
-                  {levelProgress.nextLevelName
-                    ? `다음 레벨(${levelProgress.nextLevelName})까지 ${levelProgress.remainingPostCount}회 남았어요.`
-                    : '최고 레벨을 달성했어요!'}
-                </p>
+                <LevelHeader>
+                  <LevelHeading>
+                    <h3>레벨 진행도</h3>
+                    <p>오늘도 꾸준히 잔디를 심고 있어요.</p>
+                  </LevelHeading>
+                  <BadgePill>
+                    {badgeInfo.emoji} {badgeInfo.label}
+                  </BadgePill>
+                </LevelHeader>
+
+                <LevelStatGrid>
+                  <StatCard>
+                    <StatLabel>현재 레벨</StatLabel>
+                    <StatValue>Lv.{levelProgress.currentLevel}</StatValue>
+                  </StatCard>
+                  <StatCard>
+                    <StatLabel>누적 인증</StatLabel>
+                    <StatValue>{levelProgress.postCount}회</StatValue>
+                  </StatCard>
+                  <StatCard>
+                    <StatLabel>다음까지</StatLabel>
+                    <StatValue>{levelProgress.remainingPostCount}회</StatValue>
+                  </StatCard>
+                </LevelStatGrid>
+
+                <NextLevelCard>
+                  <NextLevelText>
+                    {levelProgress.nextLevelName
+                      ? `다음 레벨 "${levelProgress.nextLevelName}"까지 ${levelProgress.remainingPostCount}회 남았어요.`
+                      : '최고 레벨을 달성했어요!'}
+                  </NextLevelText>
+                  <NextLevelTrack>
+                    <NextLevelTrackFill $percent={levelProgressPercent} />
+                  </NextLevelTrack>
+                </NextLevelCard>
+
+                <BadgeCollection>
+                  <BadgeCollectionTitle>배지 컬렉션</BadgeCollectionTitle>
+                  <BadgeCollectionGrid>
+                    {badgeOrder.map((badge) => {
+                      const info = badgeInfoMap[badge.key];
+                      const unlocked = levelProgress.currentLevel >= badge.level;
+                      return (
+                        <BadgeChip key={badge.key} $active={unlocked}>
+                          {info.emoji} {info.label}
+                        </BadgeChip>
+                      );
+                    })}
+                  </BadgeCollectionGrid>
+                </BadgeCollection>
+
+                <HistoryTitle>레벨업 히스토리</HistoryTitle>
 
                 <HistoryList>
                   {levelHistories.length === 0 && <HistoryItem>아직 레벨업 이력이 없어요.</HistoryItem>}
                   {levelHistories.map((history) => (
                     <HistoryItem key={history.id ?? `${history.newLevel}-${history.changedAt}`}>
-                      Lv.{history.previousLevel} {history.previousLevelName} → Lv.{history.newLevel}{' '}
-                      {history.newLevelName} (누적 {history.postCount}회)
+                      <HistoryLine>
+                        Lv.{history.previousLevel} {history.previousLevelName} → Lv.{history.newLevel}{' '}
+                        {history.newLevelName}
+                      </HistoryLine>
+                      <HistoryMeta>
+                        누적 {history.postCount}회 · {formatHistoryDate(history.changedAt)}
+                      </HistoryMeta>
                     </HistoryItem>
                   ))}
                 </HistoryList>

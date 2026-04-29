@@ -229,18 +229,6 @@ export default function Main() {
           angle={-3}
           onClick={() => navigate('/settings/mail')}
         />
-        <ArrowButton
-          direction="left"
-          text="운영 센터"
-          angle={4}
-          onClick={() => navigate('/admin')}
-        />
-        <ArrowButton
-          direction="right"
-          text="시스템 상태"
-          angle={-2}
-          onClick={() => navigate('/system')}
-        />
         <ArrowButton direction="center" text="로그아웃" angle={2} onClick={handleLogout} />
       </SignsSection>
     </Wrapper>
