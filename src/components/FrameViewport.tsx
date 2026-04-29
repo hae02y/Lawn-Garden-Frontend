@@ -14,6 +14,7 @@ interface TreeState {
 interface FrameViewportProps {
   themeMode: 'morning' | 'night';
   treeState: TreeState;
+  treeBadge?: string;
 }
 
 interface StyledFrameViewportProps {
@@ -80,14 +81,63 @@ const SecondCloud = styled(CloudImage)`
 
 const TreeImage = styled.img`
   position: absolute;
-  bottom: 0;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%);
-  width: 390px;
   z-index: 2;
 `;
 
-export function FrameViewport({ themeMode, treeState }: FrameViewportProps) {
+const TreeStageImage = styled(TreeImage)<{ $level: number }>`
+  width: ${({ $level }) => {
+    if ($level <= 1) return '320px';
+    if ($level === 2) return '350px';
+    if ($level === 3) return '380px';
+    if ($level === 4) return '405px';
+    return '430px';
+  }};
+  filter: ${({ $level }) => {
+    if ($level <= 1) return 'saturate(0.82) brightness(0.98)';
+    if ($level === 2) return 'saturate(0.95) brightness(1.01)';
+    if ($level === 3) return 'saturate(1.05) brightness(1.04)';
+    if ($level === 4) return 'saturate(1.15) brightness(1.06)';
+    return 'saturate(1.22) brightness(1.1) drop-shadow(0 8px 16px rgba(61, 141, 122, 0.18))';
+  }};
+  z-index: 2;
+`;
+
+const StageSpark = styled.div<{ $level: number; $x: string; $y: string }>`
+  position: absolute;
+  left: ${({ $x }) => $x};
+  top: ${({ $y }) => $y};
+  width: ${({ $level }) => ($level >= 4 ? '12px' : '9px')};
+  height: ${({ $level }) => ($level >= 4 ? '12px' : '9px')};
+  border-radius: 999px;
+  background: ${({ $level }) => ($level >= 4 ? '#f7d57a' : '#a4d7b6')};
+  box-shadow: 0 0 12px rgba(164, 215, 182, 0.5);
+  z-index: 3;
+`;
+
+const CrownMark = styled.div`
+  position: absolute;
+  left: 50%;
+  bottom: 52%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  z-index: 4;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.18));
+`;
+
+const badgeLevelMap: Record<string, number> = {
+  SPROUT: 1,
+  SAPLING: 2,
+  GROWING_TREE: 3,
+  BIG_TREE: 4,
+  MASTER_GARDENER: 5,
+};
+
+export function FrameViewport({ themeMode, treeState, treeBadge = 'SPROUT' }: FrameViewportProps) {
+  const stageLevel = badgeLevelMap[treeBadge] ?? 1;
+
   return (
     <FrameViewportContainer $themeMode={themeMode}>
       <DayInfoText>
@@ -102,7 +152,13 @@ export function FrameViewport({ themeMode, treeState }: FrameViewportProps) {
       <GroundImage src={groundImg} alt="땅" />
       {themeMode === 'morning' && <FirstCloud src={cloudImg} alt="구름1" />}
       {themeMode === 'morning' && <SecondCloud src={cloudImg} alt="구름2" $reverse />}
-      <TreeImage src={treeImg} alt="나무" />
+
+      {stageLevel >= 2 && <StageSpark $level={stageLevel} $x="26%" $y="45%" />}
+      {stageLevel >= 3 && <StageSpark $level={stageLevel} $x="67%" $y="41%" />}
+      {stageLevel >= 4 && <StageSpark $level={stageLevel} $x="49%" $y="35%" />}
+      {stageLevel >= 5 && <CrownMark>👑</CrownMark>}
+
+      <TreeStageImage src={treeImg} alt="나무" $level={stageLevel} />
     </FrameViewportContainer>
   );
 }

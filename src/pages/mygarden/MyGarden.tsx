@@ -22,36 +22,15 @@ const PageContainer = styled.section`
   margin: 0 auto;
   height: calc(100dvh - 86px);
   display: grid;
-  grid-template-rows: auto minmax(160px, 1fr) auto auto;
+  grid-template-rows: minmax(230px, 1fr) auto auto;
   gap: 8px;
   overflow: hidden;
 `;
 
-const UserInfoBox = styled.header`
-  background-color: #faf1e6;
-  width: 100%;
-  min-height: 82px;
-  border-radius: 25px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0.75rem;
-  text-align: center;
-`;
-
-const UserInfoText = styled.div`
-  color: #99bc85;
-
-  span {
-    color: #3d8d7a;
-  }
-`;
-
 const FrameContainer = styled.section`
   width: 100%;
-  min-height: 165px;
-  max-height: 34vh;
+  min-height: 200px;
+  max-height: 44vh;
 `;
 
 const TreeInfoBox = styled.section`
@@ -62,7 +41,7 @@ const TreeInfoBox = styled.section`
   background-color: #faf1e6;
   width: 100%;
   border-radius: 25px;
-  padding: 0.75rem;
+  padding: 0.65rem 0.75rem;
   gap: 0.55rem;
 `;
 
@@ -108,6 +87,11 @@ const LevelHeading = styled.div`
   p {
     font-size: 0.74rem;
     color: #6f8476;
+  }
+
+  strong {
+    color: #3d8d7a;
+    font-size: 0.86rem;
   }
 `;
 
@@ -483,21 +467,11 @@ export default function MyGarden() {
 
         {!isLoading && !errorMessage && user && (
           <>
-            <UserInfoBox>
-              <UserInfoText>
-                <h2>
-                  <span>{user.username}</span> 님의 정원
-                </h2>
-                <h4>
-                  당신의 레벨 : <span>Lv.{user.level} {user.levelName}</span> · <span>{user.levelBadge}</span>
-                </h4>
-              </UserInfoText>
-            </UserInfoBox>
-
             <FrameContainer>
               <FrameViewport
                 themeMode={themeMode}
                 treeState={{ totalDate: weeklyCount, currentDate: todayCount }}
+                treeBadge={levelProgress?.currentBadge ?? user.levelBadge}
               />
             </FrameContainer>
 
@@ -526,7 +500,9 @@ export default function MyGarden() {
                 <LevelHeader>
                   <LevelHeading>
                     <h3>레벨 진행도</h3>
-                    <p>오늘도 꾸준히 잔디를 심고 있어요.</p>
+                    <p>
+                      <strong>{user.username}</strong> 님 · Lv.{levelProgress.currentLevel} {levelProgress.currentLevelName}
+                    </p>
                   </LevelHeading>
                   <BadgePill>
                     {badgeInfo.emoji} {badgeInfo.label}
