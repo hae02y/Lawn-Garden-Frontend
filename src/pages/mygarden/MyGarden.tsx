@@ -173,7 +173,7 @@ const NextLevelTrackFill = styled.div<{ $percent: number }>`
 `;
 
 const BadgeCollection = styled.div`
-  margin-top: 0.8rem;
+  margin-top: 0.75rem;
   background: rgba(255, 255, 255, 0.72);
   border-radius: 14px;
   padding: 0.72rem;
@@ -202,7 +202,7 @@ const BadgeChip = styled.div<{ $active: boolean }>`
 `;
 
 const HistoryTitle = styled.h4`
-  margin-top: 0.9rem;
+  margin-top: 0.85rem;
   color: #3d8d7a;
   font-size: 0.95rem;
 `;
@@ -212,7 +212,7 @@ const HistoryList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-top: 0.7rem;
+  margin-top: 0.6rem;
 `;
 
 const HistoryItem = styled.li`
@@ -236,6 +236,84 @@ const HistoryMeta = styled.div`
 const Notice = styled.p`
   color: #6b6b6b;
   text-align: center;
+`;
+
+const LevelActionRow = styled.div`
+  margin-top: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+`;
+
+const LevelHint = styled.p`
+  color: #6f8476;
+  font-size: 0.78rem;
+  text-align: left;
+`;
+
+const OpenModalButton = styled.button`
+  border: none;
+  border-radius: 999px;
+  padding: 0.42rem 0.78rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #3d8d7a;
+  cursor: pointer;
+
+  &:hover {
+    background: #357b69;
+  }
+`;
+
+const FullscreenModal = styled.div`
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  background: rgba(26, 42, 35, 0.34);
+  backdrop-filter: blur(4px);
+  display: flex;
+`;
+
+const ModalSheet = styled.section`
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(175deg, #f7eee2 0%, #f0e5d6 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+`;
+
+const ModalHeader = styled.header`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+`;
+
+const ModalTitle = styled.h3`
+  color: #2f5f51;
+  font-size: 1.05rem;
+`;
+
+const CloseModalButton = styled.button`
+  border: none;
+  border-radius: 999px;
+  padding: 0.34rem 0.74rem;
+  font-size: 0.77rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #7f8d83;
+  cursor: pointer;
+`;
+
+const ModalBody = styled.div`
+  margin-top: 0.75rem;
+  overflow-y: auto;
+  padding-bottom: 1.1rem;
 `;
 
 const getTreeName = (weeklyCount: number) => {
@@ -284,6 +362,7 @@ export default function MyGarden() {
   const [todayStats, setTodayStats] = useState<UserStatsResponseDto[]>([]);
   const [levelProgress, setLevelProgress] = useState<UserLevelProgressResponseDto | null>(null);
   const [levelHistories, setLevelHistories] = useState<UserLevelHistoryResponseDto[]>([]);
+  const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -359,6 +438,26 @@ export default function MyGarden() {
     const currentGap = Math.max(0, levelProgress.postCount - currentFloor);
     return Math.min(100, Math.round((currentGap / totalGap) * 100));
   }, [levelProgress]);
+  const recentLevelUp = levelHistories[0] ?? null;
+
+  useEffect(() => {
+    if (!isLevelModalOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsLevelModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isLevelModalOpen]);
 
   return (
     <Wrapper marginBottom>
@@ -445,38 +544,63 @@ export default function MyGarden() {
                   </NextLevelTrack>
                 </NextLevelCard>
 
-                <BadgeCollection>
-                  <BadgeCollectionTitle>배지 컬렉션</BadgeCollectionTitle>
-                  <BadgeCollectionGrid>
-                    {badgeOrder.map((badge) => {
-                      const info = badgeInfoMap[badge.key];
-                      const unlocked = levelProgress.currentLevel >= badge.level;
-                      return (
-                        <BadgeChip key={badge.key} $active={unlocked}>
-                          {info.emoji} {info.label}
-                        </BadgeChip>
-                      );
-                    })}
-                  </BadgeCollectionGrid>
-                </BadgeCollection>
-
-                <HistoryTitle>레벨업 히스토리</HistoryTitle>
-
-                <HistoryList>
-                  {levelHistories.length === 0 && <HistoryItem>아직 레벨업 이력이 없어요.</HistoryItem>}
-                  {levelHistories.map((history) => (
-                    <HistoryItem key={history.id ?? `${history.newLevel}-${history.changedAt}`}>
-                      <HistoryLine>
-                        Lv.{history.previousLevel} {history.previousLevelName} → Lv.{history.newLevel}{' '}
-                        {history.newLevelName}
-                      </HistoryLine>
-                      <HistoryMeta>
-                        누적 {history.postCount}회 · {formatHistoryDate(history.changedAt)}
-                      </HistoryMeta>
-                    </HistoryItem>
-                  ))}
-                </HistoryList>
+                <LevelActionRow>
+                  <LevelHint>
+                    {recentLevelUp
+                      ? `최근 레벨업: Lv.${recentLevelUp.newLevel} ${recentLevelUp.newLevelName}`
+                      : '최근 레벨업 이력이 없어요.'}
+                  </LevelHint>
+                  <OpenModalButton type="button" onClick={() => setIsLevelModalOpen(true)}>
+                    상세 보기
+                  </OpenModalButton>
+                </LevelActionRow>
               </LevelCard>
+            )}
+
+            {isMyGarden && levelProgress && isLevelModalOpen && (
+              <FullscreenModal role="dialog" aria-modal="true" aria-label="레벨 상세 정보">
+                <ModalSheet>
+                  <ModalHeader>
+                    <ModalTitle>레벨 상세 정보</ModalTitle>
+                    <CloseModalButton type="button" onClick={() => setIsLevelModalOpen(false)}>
+                      닫기
+                    </CloseModalButton>
+                  </ModalHeader>
+
+                  <ModalBody>
+                    <BadgeCollection>
+                      <BadgeCollectionTitle>배지 컬렉션</BadgeCollectionTitle>
+                      <BadgeCollectionGrid>
+                        {badgeOrder.map((badge) => {
+                          const info = badgeInfoMap[badge.key];
+                          const unlocked = levelProgress.currentLevel >= badge.level;
+                          return (
+                            <BadgeChip key={badge.key} $active={unlocked}>
+                              {info.emoji} {info.label}
+                            </BadgeChip>
+                          );
+                        })}
+                      </BadgeCollectionGrid>
+                    </BadgeCollection>
+
+                    <HistoryTitle>레벨업 히스토리</HistoryTitle>
+                    <HistoryList>
+                      {levelHistories.length === 0 && <HistoryItem>아직 레벨업 이력이 없어요.</HistoryItem>}
+                      {levelHistories.map((history) => (
+                        <HistoryItem key={history.id ?? `${history.newLevel}-${history.changedAt}`}>
+                          <HistoryLine>
+                            Lv.{history.previousLevel} {history.previousLevelName} → Lv.{history.newLevel}{' '}
+                            {history.newLevelName}
+                          </HistoryLine>
+                          <HistoryMeta>
+                            누적 {history.postCount}회 · {formatHistoryDate(history.changedAt)}
+                          </HistoryMeta>
+                        </HistoryItem>
+                      ))}
+                    </HistoryList>
+                  </ModalBody>
+                </ModalSheet>
+              </FullscreenModal>
             )}
           </>
         )}
