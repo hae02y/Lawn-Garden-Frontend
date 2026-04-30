@@ -29,8 +29,8 @@ const PageContainer = styled.section`
 
 const FrameContainer = styled.section`
   width: 100%;
-  min-height: 200px;
-  max-height: 44vh;
+  min-height: 220px;
+  max-height: 48vh;
 `;
 
 const TreeInfoBox = styled.section`

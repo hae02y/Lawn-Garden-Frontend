@@ -81,7 +81,7 @@ const SecondCloud = styled(CloudImage)`
 
 const TreeImage = styled.img`
   position: absolute;
-  bottom: -6px;
+  bottom: -8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -89,12 +89,13 @@ const TreeImage = styled.img`
 
 const TreeStageImage = styled(TreeImage)<{ $level: number }>`
   width: ${({ $level }) => {
-    if ($level <= 1) return '320px';
-    if ($level === 2) return '350px';
-    if ($level === 3) return '380px';
-    if ($level === 4) return '405px';
-    return '430px';
+    if ($level <= 1) return 'clamp(250px, 74vw, 320px)';
+    if ($level === 2) return 'clamp(275px, 80vw, 350px)';
+    if ($level === 3) return 'clamp(300px, 86vw, 380px)';
+    if ($level === 4) return 'clamp(318px, 92vw, 405px)';
+    return 'clamp(335px, 96vw, 430px)';
   }};
+  bottom: ${({ $level }) => ($level >= 4 ? '-14px' : '-8px')};
   filter: ${({ $level }) => {
     if ($level <= 1) return 'saturate(0.82) brightness(0.98)';
     if ($level === 2) return 'saturate(0.95) brightness(1.01)';
@@ -102,6 +103,7 @@ const TreeStageImage = styled(TreeImage)<{ $level: number }>`
     if ($level === 4) return 'saturate(1.15) brightness(1.06)';
     return 'saturate(1.22) brightness(1.1) drop-shadow(0 8px 16px rgba(61, 141, 122, 0.18))';
   }};
+  transition: width 0.35s ease, filter 0.35s ease;
   z-index: 2;
 `;
 
