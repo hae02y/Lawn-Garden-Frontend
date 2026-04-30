@@ -6,12 +6,21 @@ import PageHeader from '@/components/PageHeader';
 import Loading from '@/components/Loading';
 import { FrameViewport } from '@/components/FrameViewport';
 import ProgressBar from '@/components/ProgressBar';
+import {
+  getMyNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  refreshMyNotifications,
+} from '@/api/notification';
 import { getMyPosts } from '@/api/post';
 import { getMyLevelHistory, getMyLevelProgress, getUserById } from '@/api/user';
 import { getTodayStats, getWeeklyStats } from '@/api/stats';
 import { useAuthStore } from '@/store/authStore';
 import type {
+  NotificationSeverity,
+  NotificationReadResponseDto,
   PostSummaryDto,
+  UserNotificationResponseDto,
   UserDetailResponseDto,
   UserLevelHistoryResponseDto,
   UserLevelProgressResponseDto,
@@ -371,7 +380,7 @@ const NotificationList = styled.div`
   gap: 0.46rem;
 `;
 
-const NotificationItem = styled.button<{ $read: boolean; $severity: 'info' | 'warn' | 'success' }>`
+const NotificationItem = styled.button<{ $read: boolean; $severity: NotificationSeverity }>`
   border: none;
   text-align: left;
   cursor: pointer;
@@ -379,8 +388,8 @@ const NotificationItem = styled.button<{ $read: boolean; $severity: 'info' | 'wa
   padding: 0.56rem 0.62rem;
   background: ${({ $read, $severity }) => {
     if ($read) return '#f1ece6';
-    if ($severity === 'warn') return '#ffe9d8';
-    if ($severity === 'success') return '#dff4e8';
+    if ($severity === 'WARN') return '#ffe9d8';
+    if ($severity === 'SUCCESS') return '#dff4e8';
     return '#e7f2ec';
   }};
 
@@ -593,13 +602,6 @@ const badgeOrder = [
   { level: 5, key: 'MASTER_GARDENER' },
 ] as const;
 
-type GardenNotification = {
-  id: string;
-  title: string;
-  message: string;
-  severity: 'info' | 'warn' | 'success';
-};
-
 const levelFloorMap: Record<number, number> = {
   1: 0,
   2: 7,
@@ -664,7 +666,7 @@ export default function MyGarden() {
   const [previewBadge, setPreviewBadge] = useState<string | null>(null);
   const [badgeFeedback, setBadgeFeedback] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<UserNotificationResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -708,12 +710,13 @@ export default function MyGarden() {
           return Array.from(new Set(collected)).sort();
         };
 
-        const [userRes, weeklyRes, todayRes, myProgressRes, myHistoryRes] = await Promise.all([
+        const [userRes, weeklyRes, todayRes, myProgressRes, myHistoryRes, notificationRes] = await Promise.all([
           getUserById(effectiveUserId),
           getWeeklyStats(),
           getTodayStats(),
           isMyGarden ? getMyLevelProgress() : Promise.resolve(null),
           isMyGarden ? getMyLevelHistory(10) : Promise.resolve(null),
+          isMyGarden ? refreshMyNotifications() : Promise.resolve(null),
         ]);
 
         const myDateKeys = await fetchMyPostDateKeys();
@@ -723,6 +726,7 @@ export default function MyGarden() {
         setTodayStats(todayRes.data);
         setLevelProgress(myProgressRes?.data ?? null);
         setLevelHistories(myHistoryRes?.data ?? []);
+        setNotifications(notificationRes?.data ?? []);
         setMyPostDateKeys(myDateKeys);
 
         if (isMyGarden && myProgressRes?.data && effectiveUserId) {
@@ -833,61 +837,7 @@ export default function MyGarden() {
     [levelProgress, streakDays, calendarDays]
   );
 
-  const notifications = useMemo<GardenNotification[]>(() => {
-    const list: GardenNotification[] = [];
-
-    if (!todayDone) {
-      list.push({
-        id: 'today-mission',
-        title: '오늘 미션 남음',
-        message: '오늘 물주기를 완료하면 연속 기록을 안정적으로 유지할 수 있어요.',
-        severity: 'warn',
-      });
-    }
-
-    if (streakRisk) {
-      list.push({
-        id: 'streak-risk',
-        title: '연속 인증 주의',
-        message: '지금 상태에서 오늘 인증을 놓치면 streak가 끊길 수 있어요.',
-        severity: 'warn',
-      });
-    }
-
-    if (justLeveledUp) {
-      list.push({
-        id: 'level-up',
-        title: '레벨 업 축하!',
-        message: `Lv.${levelProgress?.currentLevel ?? '-'} ${levelProgress?.currentLevelName ?? ''} 달성을 축하해요!`,
-        severity: 'success',
-      });
-    }
-
-    if ((levelProgress?.remainingPostCount ?? 99) > 0 && (levelProgress?.remainingPostCount ?? 99) <= 3) {
-      list.push({
-        id: 'near-level-up',
-        title: '다음 레벨 임박',
-        message: `다음 레벨까지 ${levelProgress?.remainingPostCount ?? 0}회 남았어요.`,
-        severity: 'info',
-      });
-    }
-
-    if (streakDays >= 7) {
-      list.push({
-        id: 'streak-reward',
-        title: '연속 보상 구간 도달',
-        message: `${streakDays}일 연속 달성! 보너스 배지 구간이에요.`,
-        severity: 'success',
-      });
-    }
-
-    return list;
-  }, [todayDone, streakRisk, justLeveledUp, levelProgress, streakDays]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((item) => !readNotificationIds.includes(item.id)).length,
-    [notifications, readNotificationIds]
-  );
+  const unreadCount = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
 
   useEffect(() => {
     const shouldLock = isLevelModalOpen || isNotificationOpen;
@@ -918,27 +868,50 @@ export default function MyGarden() {
     );
   };
 
-  const handleOpenNotifications = () => {
+  const handleOpenNotifications = async () => {
+    if (isMyGarden) {
+      try {
+        const response = await getMyNotifications();
+        setNotifications(response.data);
+      } catch {
+        // 알림 조회 실패 시 기존 화면 상태를 유지한다.
+      }
+    }
     setIsNotificationOpen(true);
   };
 
-  const markNotificationRead = (id: string) => {
-    setReadNotificationIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  const handleMarkNotificationRead = async (notification: UserNotificationResponseDto) => {
+    if (!notification.id || notification.isRead) return;
+
+    try {
+      const response = await markNotificationRead(notification.id);
+      const readPayload: NotificationReadResponseDto = response.data;
+      setNotifications((prev) =>
+        prev.map((item) => (item.id === readPayload.id ? { ...item, isRead: readPayload.isRead } : item))
+      );
+    } catch {
+      // 읽음 처리 실패 시 기존 상태를 유지한다.
+    }
   };
 
-  const markAllNotificationsRead = () => {
-    setReadNotificationIds(Array.from(new Set(notifications.map((item) => item.id))));
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+    } catch {
+      // 전체 읽음 실패 시 기존 상태를 유지한다.
+    }
   };
 
   return (
     <Wrapper>
       <PageHeader
         title="내 정원 조회"
-        rightButton={
+        rightButton={isMyGarden ? (
           <BellButton type="button" $hasUnread={unreadCount > 0} onClick={handleOpenNotifications}>
             🔔 {unreadCount > 0 ? unreadCount : ''}
           </BellButton>
-        }
+        ) : undefined}
       />
       <PageContainer>
         {isLoading && <Loading />}
@@ -1155,19 +1128,19 @@ export default function MyGarden() {
 
                   <NotificationList>
                     {notifications.length === 0 && (
-                      <NotificationItem as="div" $read={false} $severity="info">
+                      <NotificationItem as="div" $read={false} $severity="INFO">
                         <strong>알림이 없어요</strong>
                         <p>지금 정원 상태가 안정적이에요.</p>
                       </NotificationItem>
                     )}
                     {notifications.map((notification) => {
-                      const isRead = readNotificationIds.includes(notification.id);
+                      const isRead = notification.isRead;
                       return (
                         <NotificationItem
-                          key={notification.id}
+                          key={notification.id ?? notification.code}
                           $read={isRead}
                           $severity={notification.severity}
-                          onClick={() => markNotificationRead(notification.id)}
+                          onClick={() => handleMarkNotificationRead(notification)}
                         >
                           <strong>{isRead ? '읽음' : '새 알림'} · {notification.title}</strong>
                           <p>{notification.message}</p>
@@ -1177,7 +1150,7 @@ export default function MyGarden() {
                   </NotificationList>
 
                   <NotificationActions>
-                    <MarkAllButton type="button" onClick={markAllNotificationsRead}>
+                    <MarkAllButton type="button" onClick={handleMarkAllNotificationsRead}>
                       전체 읽음 처리
                     </MarkAllButton>
                   </NotificationActions>

@@ -172,3 +172,21 @@ export interface ErrorCodeDocItem {
   httpStatus: string;
   description: string;
 }
+
+export type NotificationSeverity = 'INFO' | 'SUCCESS' | 'WARN';
+
+export interface UserNotificationResponseDto {
+  id: number | null;
+  title: string;
+  message: string;
+  severity: NotificationSeverity;
+  code: string;
+  referenceDate: string | null;
+  isRead: boolean;
+  createdAt: string | null;
+}
+
+export interface NotificationReadResponseDto {
+  id: number;
+  isRead: boolean;
+}
