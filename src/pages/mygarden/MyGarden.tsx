@@ -22,17 +22,24 @@ import { getErrorMessage } from '@/utils/error';
 const PageContainer = styled.section`
   width: min(92vw, 430px);
   margin: 0 auto;
-  height: calc(100dvh - 86px);
-  display: grid;
-  grid-template-rows: minmax(230px, 1fr) auto auto;
+  height: calc(100dvh - 88px);
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+
+  @media (min-height: 900px) {
+    height: calc(100dvh - 96px);
+  }
 `;
 
 const FrameContainer = styled.section`
   width: 100%;
+  flex: 1 1 auto;
   min-height: 220px;
-  max-height: 48vh;
+  max-height: clamp(260px, 48vh, 420px);
 `;
 
 const TreeInfoBox = styled.section`
@@ -182,12 +189,28 @@ const BadgeCollectionGrid = styled.div`
 `;
 
 const BadgeChip = styled.div<{ $active: boolean }>`
+  border: none;
+  cursor: pointer;
+  text-align: left;
   border-radius: 10px;
   padding: 0.42rem 0.5rem;
   font-size: 0.77rem;
   font-weight: 700;
   color: ${({ $active }) => ($active ? '#2f5f51' : '#9ba99f')};
   background: ${({ $active }) => ($active ? '#dcf0e6' : '#f1efec')};
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  }
+`;
+
+const BadgeHint = styled.p`
+  margin-top: 0.42rem;
+  font-size: 0.7rem;
+  color: #71867a;
+  text-align: left;
 `;
 
 const HistoryTitle = styled.h4`
@@ -306,6 +329,89 @@ const ModalBody = styled.div`
   overflow-y: auto;
   padding-right: 2px;
   padding-bottom: 0.2rem;
+`;
+
+const BellButton = styled.button<{ $hasUnread: boolean }>`
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.38rem 0.64rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fff;
+  background: ${({ $hasUnread }) => ($hasUnread ? '#d17c43' : '#3d8d7a')};
+`;
+
+const NotificationPanel = styled.section`
+  width: min(92vw, 430px);
+  max-height: min(72vh, 540px);
+  background: #f6ecdf;
+  border-radius: 20px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: 0.88rem;
+`;
+
+const NotificationHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.55rem;
+
+  h3 {
+    color: #2f5f51;
+    font-size: 0.98rem;
+  }
+`;
+
+const NotificationList = styled.div`
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.46rem;
+`;
+
+const NotificationItem = styled.button<{ $read: boolean; $severity: 'info' | 'warn' | 'success' }>`
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 0.56rem 0.62rem;
+  background: ${({ $read, $severity }) => {
+    if ($read) return '#f1ece6';
+    if ($severity === 'warn') return '#ffe9d8';
+    if ($severity === 'success') return '#dff4e8';
+    return '#e7f2ec';
+  }};
+
+  strong {
+    color: #2f5f51;
+    font-size: 0.78rem;
+  }
+
+  p {
+    margin-top: 0.15rem;
+    color: #698074;
+    font-size: 0.71rem;
+    line-height: 1.32;
+  }
+`;
+
+const NotificationActions = styled.div`
+  margin-top: 0.62rem;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const MarkAllButton = styled.button`
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.34rem 0.62rem;
+  color: #fff;
+  background: #5f7f73;
 `;
 
 const MissionCard = styled.div`
@@ -471,6 +577,14 @@ const badgeInfoMap: Record<string, { emoji: string; label: string }> = {
   MASTER_GARDENER: { emoji: '👑', label: '마스터 정원사 배지' },
 };
 
+const badgeDetailMap: Record<string, string> = {
+  SPROUT: '첫 시작을 알리는 새싹 배지예요. 오늘 한 번 더 물주기 해보세요.',
+  SAPLING: '성장 루틴이 자리 잡기 시작한 단계예요.',
+  GROWING_TREE: '안정적으로 성장하는 구간이에요. 연속 인증을 노려보세요.',
+  BIG_TREE: '상위권 정원사 단계예요. 월간 완주가 눈앞이에요.',
+  MASTER_GARDENER: '정원의 전설 단계예요. 최고의 루틴을 유지 중이에요.',
+};
+
 const badgeOrder = [
   { level: 1, key: 'SPROUT' },
   { level: 2, key: 'SAPLING' },
@@ -478,6 +592,13 @@ const badgeOrder = [
   { level: 4, key: 'BIG_TREE' },
   { level: 5, key: 'MASTER_GARDENER' },
 ] as const;
+
+type GardenNotification = {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warn' | 'success';
+};
 
 const levelFloorMap: Record<number, number> = {
   1: 0,
@@ -540,6 +661,10 @@ export default function MyGarden() {
   const [levelHistories, setLevelHistories] = useState<UserLevelHistoryResponseDto[]>([]);
   const [justLeveledUp, setJustLeveledUp] = useState(false);
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
+  const [previewBadge, setPreviewBadge] = useState<string | null>(null);
+  const [badgeFeedback, setBadgeFeedback] = useState('');
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -636,7 +761,9 @@ export default function MyGarden() {
   const progressTotal = 20;
   const progressValue = Math.min(progressTotal, weeklyCount);
   const githubId = user?.username ?? 'gardener';
-  const badgeInfo = badgeInfoMap[levelProgress?.currentBadge ?? user?.levelBadge ?? 'SPROUT'] ?? {
+  const actualBadge = levelProgress?.currentBadge ?? user?.levelBadge ?? 'SPROUT';
+  const currentTreeBadge = previewBadge ?? actualBadge;
+  const badgeInfo = badgeInfoMap[currentTreeBadge] ?? {
     emoji: '🌱',
     label: '새싹 배지',
   };
@@ -706,17 +833,65 @@ export default function MyGarden() {
     [levelProgress, streakDays, calendarDays]
   );
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  const notifications = useMemo<GardenNotification[]>(() => {
+    const list: GardenNotification[] = [];
 
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+    if (!todayDone) {
+      list.push({
+        id: 'today-mission',
+        title: '오늘 미션 남음',
+        message: '오늘 물주기를 완료하면 연속 기록을 안정적으로 유지할 수 있어요.',
+        severity: 'warn',
+      });
+    }
+
+    if (streakRisk) {
+      list.push({
+        id: 'streak-risk',
+        title: '연속 인증 주의',
+        message: '지금 상태에서 오늘 인증을 놓치면 streak가 끊길 수 있어요.',
+        severity: 'warn',
+      });
+    }
+
+    if (justLeveledUp) {
+      list.push({
+        id: 'level-up',
+        title: '레벨 업 축하!',
+        message: `Lv.${levelProgress?.currentLevel ?? '-'} ${levelProgress?.currentLevelName ?? ''} 달성을 축하해요!`,
+        severity: 'success',
+      });
+    }
+
+    if ((levelProgress?.remainingPostCount ?? 99) > 0 && (levelProgress?.remainingPostCount ?? 99) <= 3) {
+      list.push({
+        id: 'near-level-up',
+        title: '다음 레벨 임박',
+        message: `다음 레벨까지 ${levelProgress?.remainingPostCount ?? 0}회 남았어요.`,
+        severity: 'info',
+      });
+    }
+
+    if (streakDays >= 7) {
+      list.push({
+        id: 'streak-reward',
+        title: '연속 보상 구간 도달',
+        message: `${streakDays}일 연속 달성! 보너스 배지 구간이에요.`,
+        severity: 'success',
+      });
+    }
+
+    return list;
+  }, [todayDone, streakRisk, justLeveledUp, levelProgress, streakDays]);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((item) => !readNotificationIds.includes(item.id)).length,
+    [notifications, readNotificationIds]
+  );
 
   useEffect(() => {
-    if (!isLevelModalOpen) return;
+    const shouldLock = isLevelModalOpen || isNotificationOpen;
+    if (!shouldLock) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -732,11 +907,39 @@ export default function MyGarden() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isLevelModalOpen]);
+  }, [isLevelModalOpen, isNotificationOpen]);
+
+  const handleBadgeClick = (badgeKey: string, unlocked: boolean) => {
+    setPreviewBadge(badgeKey);
+    setBadgeFeedback(
+      unlocked
+        ? `${badgeInfoMap[badgeKey]?.emoji ?? '🌱'} ${badgeDetailMap[badgeKey] ?? '배지 정보'} `
+        : '아직 잠긴 배지예요. 연속 인증으로 잠금 해제해보세요.'
+    );
+  };
+
+  const handleOpenNotifications = () => {
+    setIsNotificationOpen(true);
+  };
+
+  const markNotificationRead = (id: string) => {
+    setReadNotificationIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  const markAllNotificationsRead = () => {
+    setReadNotificationIds(Array.from(new Set(notifications.map((item) => item.id))));
+  };
 
   return (
     <Wrapper>
-      <PageHeader title="내 정원 조회" />
+      <PageHeader
+        title="내 정원 조회"
+        rightButton={
+          <BellButton type="button" $hasUnread={unreadCount > 0} onClick={handleOpenNotifications}>
+            🔔 {unreadCount > 0 ? unreadCount : ''}
+          </BellButton>
+        }
+      />
       <PageContainer>
         {isLoading && <Loading />}
         {!isLoading && errorMessage && <Notice>{errorMessage}</Notice>}
@@ -840,7 +1043,13 @@ export default function MyGarden() {
                       ? `최근 레벨업: Lv.${recentLevelUp.newLevel} ${recentLevelUp.newLevelName}`
                       : '최근 레벨업 이력이 없어요.'}
                   </LevelHint>
-                  <OpenModalButton type="button" onClick={() => setIsLevelModalOpen(true)}>
+                  <OpenModalButton
+                    type="button"
+                    onClick={() => {
+                      setIsLevelModalOpen(true);
+                      setBadgeFeedback('');
+                    }}
+                  >
                     상세 보기
                   </OpenModalButton>
                 </LevelActionRow>
@@ -852,7 +1061,14 @@ export default function MyGarden() {
                 <ModalSheet>
                   <ModalHeader>
                     <ModalTitle>레벨 상세 정보</ModalTitle>
-                    <CloseModalButton type="button" onClick={() => setIsLevelModalOpen(false)}>
+                    <CloseModalButton
+                      type="button"
+                      onClick={() => {
+                        setIsLevelModalOpen(false);
+                        setPreviewBadge(null);
+                        setBadgeFeedback('');
+                      }}
+                    >
                       닫기
                     </CloseModalButton>
                   </ModalHeader>
@@ -865,12 +1081,19 @@ export default function MyGarden() {
                           const info = badgeInfoMap[badge.key];
                           const unlocked = levelProgress.currentLevel >= badge.level;
                           return (
-                            <BadgeChip key={badge.key} $active={unlocked}>
+                            <BadgeChip
+                              as="button"
+                              type="button"
+                              key={badge.key}
+                              $active={unlocked}
+                              onClick={() => handleBadgeClick(badge.key, unlocked)}
+                            >
                               {info.emoji} {info.label}
                             </BadgeChip>
                           );
                         })}
                       </BadgeCollectionGrid>
+                      {badgeFeedback && <BadgeHint>{badgeFeedback}</BadgeHint>}
                     </BadgeCollection>
 
                     <HistoryTitle>레벨업 히스토리</HistoryTitle>
@@ -917,6 +1140,48 @@ export default function MyGarden() {
                     </TrophyCard>
                   </ModalBody>
                 </ModalSheet>
+              </ModalOverlay>
+            )}
+
+            {isNotificationOpen && (
+              <ModalOverlay role="dialog" aria-modal="true" aria-label="알림 센터">
+                <NotificationPanel>
+                  <NotificationHeader>
+                    <h3>알림 센터</h3>
+                    <CloseModalButton type="button" onClick={() => setIsNotificationOpen(false)}>
+                      닫기
+                    </CloseModalButton>
+                  </NotificationHeader>
+
+                  <NotificationList>
+                    {notifications.length === 0 && (
+                      <NotificationItem as="div" $read={false} $severity="info">
+                        <strong>알림이 없어요</strong>
+                        <p>지금 정원 상태가 안정적이에요.</p>
+                      </NotificationItem>
+                    )}
+                    {notifications.map((notification) => {
+                      const isRead = readNotificationIds.includes(notification.id);
+                      return (
+                        <NotificationItem
+                          key={notification.id}
+                          $read={isRead}
+                          $severity={notification.severity}
+                          onClick={() => markNotificationRead(notification.id)}
+                        >
+                          <strong>{isRead ? '읽음' : '새 알림'} · {notification.title}</strong>
+                          <p>{notification.message}</p>
+                        </NotificationItem>
+                      );
+                    })}
+                  </NotificationList>
+
+                  <NotificationActions>
+                    <MarkAllButton type="button" onClick={markAllNotificationsRead}>
+                      전체 읽음 처리
+                    </MarkAllButton>
+                  </NotificationActions>
+                </NotificationPanel>
               </ModalOverlay>
             )}
           </>
