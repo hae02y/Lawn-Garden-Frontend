@@ -6,10 +6,12 @@ import PageHeader from '@/components/PageHeader';
 import Loading from '@/components/Loading';
 import { FrameViewport } from '@/components/FrameViewport';
 import ProgressBar from '@/components/ProgressBar';
+import { getMyPosts } from '@/api/post';
 import { getMyLevelHistory, getMyLevelProgress, getUserById } from '@/api/user';
 import { getTodayStats, getWeeklyStats } from '@/api/stats';
 import { useAuthStore } from '@/store/authStore';
 import type {
+  PostSummaryDto,
   UserDetailResponseDto,
   UserLevelHistoryResponseDto,
   UserLevelProgressResponseDto,
@@ -306,6 +308,154 @@ const ModalBody = styled.div`
   padding-bottom: 0.2rem;
 `;
 
+const MissionCard = styled.div`
+  margin-top: 0.5rem;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 14px;
+  padding: 0.58rem;
+`;
+
+const MissionTitle = styled.p`
+  color: #3d8d7a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+`;
+
+const MissionList = styled.ul`
+  margin-top: 0.4rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+`;
+
+const MissionItem = styled.li<{ $done: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-radius: 10px;
+  padding: 0.42rem 0.52rem;
+  background: ${({ $done }) => ($done ? '#dff4e8' : '#f3f0ed')};
+  color: ${({ $done }) => ($done ? '#2f6958' : '#70857a')};
+  font-size: 0.76rem;
+  font-weight: 700;
+`;
+
+const StreakBadge = styled.div<{ $risk: boolean }>`
+  margin-top: 0.48rem;
+  border-radius: 12px;
+  padding: 0.5rem 0.6rem;
+  background: ${({ $risk }) => ($risk ? 'linear-gradient(135deg, #ffe4cd 0%, #ffd8bf 100%)' : 'linear-gradient(135deg, #e0f3e8 0%, #d2ecd9 100%)')};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+`;
+
+const StreakMain = styled.div`
+  text-align: left;
+
+  strong {
+    font-size: 1rem;
+    color: #2f5f51;
+  }
+
+  p {
+    margin-top: 0.1rem;
+    font-size: 0.72rem;
+    color: #60776b;
+  }
+`;
+
+const StreakBonus = styled.div`
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #3d8d7a;
+  white-space: nowrap;
+`;
+
+const CalendarCard = styled.div`
+  margin-top: 0.85rem;
+  background: rgba(255, 255, 255, 0.74);
+  border-radius: 14px;
+  padding: 0.68rem;
+`;
+
+const CalendarTitle = styled.p`
+  color: #3d8d7a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+`;
+
+const WeekHeader = styled.div`
+  margin-top: 0.45rem;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.18rem;
+`;
+
+const WeekHeaderCell = styled.div`
+  font-size: 0.66rem;
+  color: #7c8f84;
+  text-align: center;
+  font-weight: 700;
+`;
+
+const CalendarGrid = styled.div`
+  margin-top: 0.2rem;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.18rem;
+`;
+
+const CalendarCell = styled.div<{ $active: boolean; $today: boolean }>`
+  height: 24px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: ${({ $active }) => ($active ? '#ffffff' : '#84988d')};
+  background: ${({ $active }) => ($active ? '#3d8d7a' : '#f2f0ed')};
+  outline: ${({ $today }) => ($today ? '1px dashed #3d8d7a' : 'none')};
+`;
+
+const TrophyCard = styled.div`
+  margin-top: 0.85rem;
+  background: rgba(255, 255, 255, 0.74);
+  border-radius: 14px;
+  padding: 0.68rem;
+`;
+
+const TrophyTitle = styled.p`
+  color: #3d8d7a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+`;
+
+const TrophyGrid = styled.div`
+  margin-top: 0.45rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+`;
+
+const TrophyChip = styled.div<{ $active: boolean }>`
+  border-radius: 10px;
+  padding: 0.45rem 0.52rem;
+  background: ${({ $active }) => ($active ? '#e4f5ea' : '#f1efec')};
+  color: ${({ $active }) => ($active ? '#2f6756' : '#95a39a')};
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: left;
+`;
+
 const getTreeName = (weeklyCount: number) => {
   if (weeklyCount >= 20) return '무성한 큰나무';
   if (weeklyCount >= 12) return '든든한 중간나무';
@@ -344,14 +494,51 @@ const formatHistoryDate = (value: string | null) => {
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
 };
 
+const toDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateKey = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  const normalized = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null;
+  return normalized;
+};
+
+const calcStreakDays = (dateKeys: string[]): number => {
+  if (!dateKeys.length) return 0;
+
+  const set = new Set(dateKeys);
+  const today = new Date();
+  const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let streak = 0;
+
+  if (!set.has(toDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+    if (!set.has(toDateKey(cursor))) return 0;
+  }
+
+  while (set.has(toDateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+};
+
 export default function MyGarden() {
   const { userId } = useParams();
   const storedUserId = useAuthStore((state) => state.userId);
   const [user, setUser] = useState<UserDetailResponseDto | null>(null);
   const [weeklyStats, setWeeklyStats] = useState<UserStatsResponseDto[]>([]);
   const [todayStats, setTodayStats] = useState<UserStatsResponseDto[]>([]);
+  const [myPostDateKeys, setMyPostDateKeys] = useState<string[]>([]);
   const [levelProgress, setLevelProgress] = useState<UserLevelProgressResponseDto | null>(null);
   const [levelHistories, setLevelHistories] = useState<UserLevelHistoryResponseDto[]>([]);
+  const [justLeveledUp, setJustLeveledUp] = useState(false);
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -376,6 +563,26 @@ export default function MyGarden() {
       setErrorMessage('');
 
       try {
+        const fetchMyPostDateKeys = async (): Promise<string[]> => {
+          if (!isMyGarden) return [];
+
+          const collected: string[] = [];
+          const maxPages = 6;
+
+          for (let page = 0; page < maxPages; page += 1) {
+            const response = await getMyPosts({ page, size: 100 });
+            const items = response.data.content ?? [];
+            items.forEach((item: PostSummaryDto) => {
+              const key = parseDateKey(item.createdDate);
+              if (key) collected.push(key);
+            });
+
+            if (page >= response.data.totalPages - 1) break;
+          }
+
+          return Array.from(new Set(collected)).sort();
+        };
+
         const [userRes, weeklyRes, todayRes, myProgressRes, myHistoryRes] = await Promise.all([
           getUserById(effectiveUserId),
           getWeeklyStats(),
@@ -384,11 +591,24 @@ export default function MyGarden() {
           isMyGarden ? getMyLevelHistory(10) : Promise.resolve(null),
         ]);
 
+        const myDateKeys = await fetchMyPostDateKeys();
+
         setUser(userRes.data);
         setWeeklyStats(weeklyRes.data);
         setTodayStats(todayRes.data);
         setLevelProgress(myProgressRes?.data ?? null);
         setLevelHistories(myHistoryRes?.data ?? []);
+        setMyPostDateKeys(myDateKeys);
+
+        if (isMyGarden && myProgressRes?.data && effectiveUserId) {
+          const storageKey = `mygarden:last-level:${effectiveUserId}`;
+          const lastLevel = Number(window.localStorage.getItem(storageKey) ?? '0');
+          if (myProgressRes.data.currentLevel > lastLevel && lastLevel > 0) {
+            setJustLeveledUp(true);
+            window.setTimeout(() => setJustLeveledUp(false), 2200);
+          }
+          window.localStorage.setItem(storageKey, String(myProgressRes.data.currentLevel));
+        }
       } catch (error: unknown) {
         setErrorMessage(getErrorMessage(error, '유저 정보를 불러오지 못했어요.'));
       } finally {
@@ -429,6 +649,62 @@ export default function MyGarden() {
     return Math.min(100, Math.round((currentGap / totalGap) * 100));
   }, [levelProgress]);
   const recentLevelUp = levelHistories[0] ?? null;
+  const streakDays = useMemo(() => calcStreakDays(myPostDateKeys), [myPostDateKeys]);
+  const todayDone = todayCount > 0;
+  const streakRisk = !todayDone && streakDays > 0;
+  const streakBonusLabel =
+    streakDays >= 30 ? '🌟 전설 유지 보너스' : streakDays >= 14 ? '🔥 장기 연속 보너스' : streakDays >= 7 ? '🎁 7일 연속 보너스' : '🌱 연속 도전 중';
+
+  const missionItems = useMemo(
+    () => [
+      { label: '오늘 물주기 인증', done: todayDone, detail: todayDone ? '완료' : '미완료' },
+      { label: '연속 인증 3일 달성', done: streakDays >= 3, detail: `${streakDays}일` },
+      {
+        label: '다음 레벨 준비',
+        done: (levelProgress?.remainingPostCount ?? 0) === 0,
+        detail: levelProgress ? `${levelProgress.remainingPostCount}회 남음` : '-',
+      },
+    ],
+    [todayDone, streakDays, levelProgress]
+  );
+
+  const calendarDays = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const items: Array<{ day: number | null; active: boolean; today: boolean }> = [];
+    const postSet = new Set(myPostDateKeys);
+
+    for (let i = 0; i < first.getDay(); i += 1) {
+      items.push({ day: null, active: false, today: false });
+    }
+
+    for (let day = 1; day <= last.getDate(); day += 1) {
+      const date = new Date(year, month, day);
+      const key = toDateKey(date);
+      items.push({ day, active: postSet.has(key), today: key === toDateKey(now) });
+    }
+
+    while (items.length % 7 !== 0) {
+      items.push({ day: null, active: false, today: false });
+    }
+
+    return items;
+  }, [myPostDateKeys]);
+
+  const trophies = useMemo(
+    () => [
+      { title: '첫 물주기 달성', unlocked: (levelProgress?.postCount ?? 0) >= 1, emoji: '🥉' },
+      { title: '7일 연속 인증', unlocked: streakDays >= 7, emoji: '🔥' },
+      { title: 'Lv.3 도달', unlocked: (levelProgress?.currentLevel ?? 0) >= 3, emoji: '🌳' },
+      { title: 'Lv.5 도달', unlocked: (levelProgress?.currentLevel ?? 0) >= 5, emoji: '👑' },
+      { title: '월간 12회 인증', unlocked: calendarDays.filter((x) => x.active).length >= 12, emoji: '📅' },
+      { title: '연속 30일 인증', unlocked: streakDays >= 30, emoji: '🏆' },
+    ],
+    [levelProgress, streakDays, calendarDays]
+  );
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -472,6 +748,7 @@ export default function MyGarden() {
                 themeMode={themeMode}
                 treeState={{ totalDate: weeklyCount, currentDate: todayCount }}
                 treeBadge={levelProgress?.currentBadge ?? user.levelBadge}
+                levelUpPulse={justLeveledUp}
               />
             </FrameContainer>
 
@@ -535,6 +812,28 @@ export default function MyGarden() {
                   </NextLevelTrack>
                 </NextLevelCard>
 
+                <MissionCard>
+                  <MissionTitle>오늘의 미션</MissionTitle>
+                  <MissionList>
+                    {missionItems.map((mission) => (
+                      <MissionItem key={mission.label} $done={mission.done}>
+                        <span>
+                          {mission.done ? '✅' : '⬜'} {mission.label}
+                        </span>
+                        <span>{mission.detail}</span>
+                      </MissionItem>
+                    ))}
+                  </MissionList>
+
+                  <StreakBadge $risk={streakRisk}>
+                    <StreakMain>
+                      <strong>{streakDays}일 연속</strong>
+                      <p>{streakRisk ? '오늘 인증이 없으면 연속 기록이 끊겨요!' : '좋아요, 연속 기록 유지 중이에요.'}</p>
+                    </StreakMain>
+                    <StreakBonus>{streakBonusLabel}</StreakBonus>
+                  </StreakBadge>
+                </MissionCard>
+
                 <LevelActionRow>
                   <LevelHint>
                     {recentLevelUp
@@ -589,6 +888,33 @@ export default function MyGarden() {
                         </HistoryItem>
                       ))}
                     </HistoryList>
+
+                    <CalendarCard>
+                      <CalendarTitle>월간 성장 캘린더</CalendarTitle>
+                      <WeekHeader>
+                        {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                          <WeekHeaderCell key={day}>{day}</WeekHeaderCell>
+                        ))}
+                      </WeekHeader>
+                      <CalendarGrid>
+                        {calendarDays.map((cell, index) => (
+                          <CalendarCell key={`${cell.day}-${index}`} $active={cell.active} $today={cell.today}>
+                            {cell.day ?? ''}
+                          </CalendarCell>
+                        ))}
+                      </CalendarGrid>
+                    </CalendarCard>
+
+                    <TrophyCard>
+                      <TrophyTitle>업적 진열대</TrophyTitle>
+                      <TrophyGrid>
+                        {trophies.map((trophy) => (
+                          <TrophyChip key={trophy.title} $active={trophy.unlocked}>
+                            {trophy.unlocked ? trophy.emoji : '🔒'} {trophy.title}
+                          </TrophyChip>
+                        ))}
+                      </TrophyGrid>
+                    </TrophyCard>
                   </ModalBody>
                 </ModalSheet>
               </ModalOverlay>

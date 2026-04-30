@@ -18,6 +18,15 @@ export const getPosts = async ({
   });
 };
 
+export const getMyPosts = async ({
+  page = 0,
+  size = 10,
+}: Omit<GetPostsParams, 'keyword'> = {}): Promise<AxiosResponse<PageResponse<PostSummaryDto>>> => {
+  return await axios.get('/api/v1/posts/me', {
+    params: { page, size },
+  });
+};
+
 export const getPostById = async (
   postId: number | string
 ): Promise<AxiosResponse<PostDetailDto>> => {

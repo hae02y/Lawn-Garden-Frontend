@@ -1,4 +1,5 @@
-import styled from 'styled-components';
+import { motion, useReducedMotion } from 'framer-motion';
+import styled, { keyframes } from 'styled-components';
 import morningBg from '@/assets/background-frame-morning.svg';
 import nightBg from '@/assets/background-frame-night.svg';
 import sunImg from '@/assets/image-sum.svg';
@@ -15,6 +16,7 @@ interface FrameViewportProps {
   themeMode: 'morning' | 'night';
   treeState: TreeState;
   treeBadge?: string;
+  levelUpPulse?: boolean;
 }
 
 interface StyledFrameViewportProps {
@@ -79,7 +81,7 @@ const SecondCloud = styled(CloudImage)`
   left: 16px;
 `;
 
-const TreeImage = styled.img`
+const TreeImage = styled(motion.img)`
   position: absolute;
   bottom: -8px;
   left: 50%;
@@ -117,6 +119,19 @@ const StageSpark = styled.div<{ $level: number; $x: string; $y: string }>`
   background: ${({ $level }) => ($level >= 4 ? '#f7d57a' : '#a4d7b6')};
   box-shadow: 0 0 12px rgba(164, 215, 182, 0.5);
   z-index: 3;
+  animation: sparkle 2.2s ease-in-out infinite;
+
+  @keyframes sparkle {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.78);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 `;
 
 const CrownMark = styled.div`
@@ -129,6 +144,89 @@ const CrownMark = styled.div`
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.18));
 `;
 
+const Fence = styled.div`
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 12px;
+  height: 14px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(132, 98, 79, 0.92) 0 10px,
+    rgba(146, 113, 93, 0.92) 10px 20px
+  );
+  z-index: 2;
+`;
+
+const Stone = styled.div<{ $x: string; $y: string; $size?: string }>`
+  position: absolute;
+  left: ${({ $x }) => $x};
+  bottom: ${({ $y }) => $y};
+  width: ${({ $size }) => $size ?? '15px'};
+  height: ${({ $size }) => $size ?? '11px'};
+  border-radius: 50%;
+  background: #d2d3cf;
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.12);
+  z-index: 2;
+`;
+
+const Pot = styled.div<{ $x: string }>`
+  position: absolute;
+  left: ${({ $x }) => $x};
+  bottom: 16px;
+  width: 16px;
+  height: 14px;
+  border-radius: 2px 2px 6px 6px;
+  background: linear-gradient(180deg, #c98c63 0%, #b56f47 100%);
+  z-index: 3;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    top: -4px;
+    height: 5px;
+    border-radius: 8px;
+    background: #d39a72;
+  }
+`;
+
+const fly = keyframes`
+  0% { transform: translate(0, 0) scale(0.8); opacity: 0.2; }
+  50% { transform: translate(4px, -6px) scale(1); opacity: 0.95; }
+  100% { transform: translate(0, 0) scale(0.8); opacity: 0.2; }
+`;
+
+const Firefly = styled.div<{ $x: string; $y: string; $delay?: string }>`
+  position: absolute;
+  left: ${({ $x }) => $x};
+  top: ${({ $y }) => $y};
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ffe78b;
+  box-shadow: 0 0 12px rgba(255, 231, 139, 0.82);
+  z-index: 3;
+  animation: ${fly} 2.4s ease-in-out infinite;
+  animation-delay: ${({ $delay }) => $delay ?? '0s'};
+`;
+
+const LevelUpBadgePop = styled(motion.div)`
+  position: absolute;
+  top: 16px;
+  right: 14px;
+  z-index: 5;
+  background: linear-gradient(130deg, #3d8d7a 0%, #77b49f 100%);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+  letter-spacing: 0.02em;
+`;
+
 const badgeLevelMap: Record<string, number> = {
   SPROUT: 1,
   SAPLING: 2,
@@ -137,8 +235,15 @@ const badgeLevelMap: Record<string, number> = {
   MASTER_GARDENER: 5,
 };
 
-export function FrameViewport({ themeMode, treeState, treeBadge = 'SPROUT' }: FrameViewportProps) {
+export function FrameViewport({
+  themeMode,
+  treeState,
+  treeBadge = 'SPROUT',
+  levelUpPulse = false,
+}: FrameViewportProps) {
   const stageLevel = badgeLevelMap[treeBadge] ?? 1;
+  const reduceMotion = useReducedMotion();
+  const canDecorate = stageLevel >= 2;
 
   return (
     <FrameViewportContainer $themeMode={themeMode}>
@@ -155,12 +260,67 @@ export function FrameViewport({ themeMode, treeState, treeBadge = 'SPROUT' }: Fr
       {themeMode === 'morning' && <FirstCloud src={cloudImg} alt="구름1" />}
       {themeMode === 'morning' && <SecondCloud src={cloudImg} alt="구름2" $reverse />}
 
+      {canDecorate && <Fence />}
+      {stageLevel >= 3 && (
+        <>
+          <Stone $x="20%" $y="18px" $size="18px" />
+          <Stone $x="73%" $y="18px" $size="14px" />
+          <Stone $x="77%" $y="12px" $size="11px" />
+        </>
+      )}
+      {stageLevel >= 4 && (
+        <>
+          <Pot $x="14%" />
+          <Pot $x="82%" />
+        </>
+      )}
+      {themeMode === 'night' && stageLevel >= 3 && (
+        <>
+          <Firefly $x="26%" $y="30%" />
+          <Firefly $x="68%" $y="36%" $delay="0.8s" />
+          {stageLevel >= 5 && <Firefly $x="54%" $y="24%" $delay="1.5s" />}
+        </>
+      )}
+
       {stageLevel >= 2 && <StageSpark $level={stageLevel} $x="26%" $y="45%" />}
       {stageLevel >= 3 && <StageSpark $level={stageLevel} $x="67%" $y="41%" />}
       {stageLevel >= 4 && <StageSpark $level={stageLevel} $x="49%" $y="35%" />}
       {stageLevel >= 5 && <CrownMark>👑</CrownMark>}
 
-      <TreeStageImage src={treeImg} alt="나무" $level={stageLevel} />
+      <TreeStageImage
+        src={treeImg}
+        alt="나무"
+        $level={stageLevel}
+        initial={reduceMotion ? undefined : { opacity: 0, scale: 0.86 }}
+        animate={
+          reduceMotion
+            ? undefined
+            : {
+                opacity: 1,
+                scale: levelUpPulse ? [1, 1.05, 1] : 1,
+              }
+        }
+        transition={
+          reduceMotion
+            ? undefined
+            : {
+                duration: 0.9,
+                ease: 'easeOut',
+                scale: { duration: 0.55, ease: 'easeInOut' },
+              }
+        }
+      />
+
+      {levelUpPulse && (
+        <LevelUpBadgePop
+          initial={{ opacity: 0, y: -8, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+        >
+          LEVEL UP!
+        </LevelUpBadgePop>
+      )}
     </FrameViewportContainer>
   );
 }
