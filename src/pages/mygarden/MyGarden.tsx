@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import Wrapper from '@/styles/Wrapper';
 import PageHeader from '@/components/PageHeader';
@@ -8,10 +8,14 @@ import { FrameViewport } from '@/components/FrameViewport';
 import ProgressBar from '@/components/ProgressBar';
 import {
   getMyNotifications,
+  getNotificationSettings,
   markAllNotificationsRead,
   markNotificationRead,
   refreshMyNotifications,
+  updateNotificationSettings,
 } from '@/api/notification';
+import { refreshMyAchievements } from '@/api/achievement';
+import { cheerUser, getCheerStatus, getWeeklyLeaderboard } from '@/api/social';
 import { getMyPosts } from '@/api/post';
 import { getMyLevelHistory, getMyLevelProgress, getUserById } from '@/api/user';
 import { getTodayStats, getWeeklyStats } from '@/api/stats';
@@ -19,12 +23,17 @@ import { useAuthStore } from '@/store/authStore';
 import type {
   NotificationSeverity,
   NotificationReadResponseDto,
+  PageResponse,
   PostSummaryDto,
+  UserAchievementResponseDto,
+  UserNotificationSettingDto,
   UserNotificationResponseDto,
   UserDetailResponseDto,
   UserLevelHistoryResponseDto,
   UserLevelProgressResponseDto,
   UserStatsResponseDto,
+  WeeklyLeaderboardItemDto,
+  CheerStatusResponseDto,
 } from '@/types/api';
 import { getErrorMessage } from '@/utils/error';
 
@@ -373,6 +382,41 @@ const NotificationHeader = styled.div`
   }
 `;
 
+const NotificationToolRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+`;
+
+const NotificationFilterGroup = styled.div`
+  display: inline-flex;
+  gap: 0.35rem;
+`;
+
+const FilterButton = styled.button<{ $active: boolean }>`
+  border: none;
+  border-radius: 999px;
+  padding: 0.28rem 0.56rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: ${({ $active }) => ($active ? '#3d8d7a' : '#dfddd9')};
+  color: ${({ $active }) => ($active ? '#ffffff' : '#5b6460')};
+`;
+
+const TinyActionButton = styled.button`
+  border: none;
+  border-radius: 999px;
+  padding: 0.28rem 0.56rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: #cfded6;
+  color: #2f5f51;
+`;
+
 const NotificationList = styled.div`
   overflow-y: auto;
   display: flex;
@@ -409,7 +453,8 @@ const NotificationItem = styled.button<{ $read: boolean; $severity: Notification
 const NotificationActions = styled.div`
   margin-top: 0.62rem;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
 `;
 
 const MarkAllButton = styled.button`
@@ -421,6 +466,74 @@ const MarkAllButton = styled.button`
   padding: 0.34rem 0.62rem;
   color: #fff;
   background: #5f7f73;
+`;
+
+const LoadMoreButton = styled.button`
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.34rem 0.62rem;
+  color: #2f5f51;
+  background: #dce7e1;
+`;
+
+const SocialCard = styled.div`
+  margin-top: 0.85rem;
+  background: rgba(255, 255, 255, 0.74);
+  border-radius: 14px;
+  padding: 0.68rem;
+`;
+
+const SocialTitle = styled.p`
+  color: #3d8d7a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+`;
+
+const CheerRow = styled.div`
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+`;
+
+const CheerSummary = styled.p`
+  color: #5c7669;
+  font-size: 0.72rem;
+`;
+
+const CheerButton = styled.button<{ $active: boolean }>`
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: ${({ $active }) => ($active ? '#ffffff' : '#355f52')};
+  background: ${({ $active }) => ($active ? '#3d8d7a' : '#d7e4dd')};
+`;
+
+const LeaderboardList = styled.ul`
+  margin-top: 0.5rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.34rem;
+`;
+
+const LeaderItem = styled.li`
+  border-radius: 10px;
+  background: #f3efe9;
+  padding: 0.46rem 0.56rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: #49675a;
+  font-size: 0.72rem;
 `;
 
 const MissionCard = styled.div`
@@ -610,6 +723,15 @@ const levelFloorMap: Record<number, number> = {
   5: 60,
 };
 
+const achievementEmojiMap: Record<UserAchievementResponseDto['code'], string> = {
+  FIRST_WATERING: '🥉',
+  STREAK_7: '🔥',
+  LEVEL_3: '🌳',
+  LEVEL_5: '👑',
+  MONTHLY_12: '📅',
+  STREAK_30: '🏆',
+};
+
 const formatHistoryDate = (value: string | null) => {
   if (!value) return '시간 정보 없음';
   const date = new Date(value);
@@ -653,6 +775,7 @@ const calcStreakDays = (dateKeys: string[]): number => {
 };
 
 export default function MyGarden() {
+  const navigate = useNavigate();
   const { userId } = useParams();
   const storedUserId = useAuthStore((state) => state.userId);
   const [user, setUser] = useState<UserDetailResponseDto | null>(null);
@@ -667,6 +790,15 @@ export default function MyGarden() {
   const [badgeFeedback, setBadgeFeedback] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<UserNotificationResponseDto[]>([]);
+  const [notificationPage, setNotificationPage] = useState(0);
+  const [notificationHasNext, setNotificationHasNext] = useState(false);
+  const [notificationUnreadOnly, setNotificationUnreadOnly] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState<UserNotificationSettingDto | null>(null);
+  const [achievements, setAchievements] = useState<UserAchievementResponseDto[]>([]);
+  const [leaderboard, setLeaderboard] = useState<WeeklyLeaderboardItemDto[]>([]);
+  const [cheerStatus, setCheerStatus] = useState<CheerStatusResponseDto | null>(null);
+  const [isCheering, setIsCheering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -678,6 +810,46 @@ export default function MyGarden() {
 
   const effectiveUserId = normalizedUserId ?? storedUserId ?? null;
   const isMyGarden = !!storedUserId && effectiveUserId === storedUserId;
+
+  const applyNotificationPage = (
+    pageResponse: PageResponse<UserNotificationResponseDto>,
+    append: boolean
+  ) => {
+    setNotifications((prev) => {
+      if (!append) return pageResponse.content;
+
+      const merged = [...prev, ...pageResponse.content];
+      const unique = new Map<string, UserNotificationResponseDto>();
+      merged.forEach((item) => {
+        const key = item.id ? `id:${item.id}` : `code:${item.code}:${item.createdAt ?? ''}`;
+        unique.set(key, item);
+      });
+      return Array.from(unique.values());
+    });
+    setNotificationPage(pageResponse.number);
+    setNotificationHasNext(pageResponse.number + 1 < pageResponse.totalPages);
+  };
+
+  const loadNotifications = async ({
+    unreadOnly,
+    page,
+    append,
+  }: {
+    unreadOnly: boolean;
+    page: number;
+    append: boolean;
+  }) => {
+    if (!isMyGarden) return;
+
+    try {
+      setNotificationLoading(true);
+      const response = await getMyNotifications({ unreadOnly, page, size: 20 });
+      applyNotificationPage(response.data, append);
+      setNotificationUnreadOnly(unreadOnly);
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!effectiveUserId) {
@@ -710,13 +882,28 @@ export default function MyGarden() {
           return Array.from(new Set(collected)).sort();
         };
 
-        const [userRes, weeklyRes, todayRes, myProgressRes, myHistoryRes, notificationRes] = await Promise.all([
+        const [
+          userRes,
+          weeklyRes,
+          todayRes,
+          myProgressRes,
+          myHistoryRes,
+          notificationRes,
+          achievementRes,
+          leaderboardRes,
+          cheerStatusRes,
+          notificationSettingsRes,
+        ] = await Promise.all([
           getUserById(effectiveUserId),
           getWeeklyStats(),
           getTodayStats(),
           isMyGarden ? getMyLevelProgress() : Promise.resolve(null),
           isMyGarden ? getMyLevelHistory(10) : Promise.resolve(null),
           isMyGarden ? refreshMyNotifications() : Promise.resolve(null),
+          isMyGarden ? refreshMyAchievements() : Promise.resolve(null),
+          getWeeklyLeaderboard(10),
+          !isMyGarden && storedUserId && normalizedUserId ? getCheerStatus(normalizedUserId) : Promise.resolve(null),
+          isMyGarden ? getNotificationSettings() : Promise.resolve(null),
         ]);
 
         const myDateKeys = await fetchMyPostDateKeys();
@@ -726,7 +913,19 @@ export default function MyGarden() {
         setTodayStats(todayRes.data);
         setLevelProgress(myProgressRes?.data ?? null);
         setLevelHistories(myHistoryRes?.data ?? []);
-        setNotifications(notificationRes?.data ?? []);
+        const firstPage = notificationRes?.data;
+        if (firstPage) {
+          applyNotificationPage(firstPage, false);
+        } else {
+          setNotifications([]);
+          setNotificationPage(0);
+          setNotificationHasNext(false);
+        }
+        setNotificationUnreadOnly(false);
+        setAchievements(achievementRes?.data ?? []);
+        setLeaderboard(leaderboardRes.data);
+        setCheerStatus(cheerStatusRes?.data ?? null);
+        setNotificationSettings(notificationSettingsRes?.data ?? null);
         setMyPostDateKeys(myDateKeys);
 
         if (isMyGarden && myProgressRes?.data && effectiveUserId) {
@@ -746,7 +945,7 @@ export default function MyGarden() {
     };
 
     fetchUser();
-  }, [effectiveUserId, isMyGarden]);
+  }, [effectiveUserId, isMyGarden, storedUserId, normalizedUserId]);
 
   const weeklyCount = useMemo(() => {
     if (!user?.username) return 0;
@@ -825,17 +1024,24 @@ export default function MyGarden() {
     return items;
   }, [myPostDateKeys]);
 
-  const trophies = useMemo(
-    () => [
+  const trophies = useMemo(() => {
+    if (achievements.length > 0) {
+      return achievements.map((achievement) => ({
+        title: achievement.title,
+        unlocked: achievement.unlocked,
+        emoji: achievementEmojiMap[achievement.code],
+      }));
+    }
+
+    return [
       { title: '첫 물주기 달성', unlocked: (levelProgress?.postCount ?? 0) >= 1, emoji: '🥉' },
       { title: '7일 연속 인증', unlocked: streakDays >= 7, emoji: '🔥' },
       { title: 'Lv.3 도달', unlocked: (levelProgress?.currentLevel ?? 0) >= 3, emoji: '🌳' },
       { title: 'Lv.5 도달', unlocked: (levelProgress?.currentLevel ?? 0) >= 5, emoji: '👑' },
       { title: '월간 12회 인증', unlocked: calendarDays.filter((x) => x.active).length >= 12, emoji: '📅' },
       { title: '연속 30일 인증', unlocked: streakDays >= 30, emoji: '🏆' },
-    ],
-    [levelProgress, streakDays, calendarDays]
-  );
+    ];
+  }, [achievements, levelProgress, streakDays, calendarDays]);
 
   const unreadCount = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
 
@@ -871,8 +1077,7 @@ export default function MyGarden() {
   const handleOpenNotifications = async () => {
     if (isMyGarden) {
       try {
-        const response = await getMyNotifications();
-        setNotifications(response.data);
+        await loadNotifications({ unreadOnly: notificationUnreadOnly, page: 0, append: false });
       } catch {
         // 알림 조회 실패 시 기존 화면 상태를 유지한다.
       }
@@ -880,8 +1085,37 @@ export default function MyGarden() {
     setIsNotificationOpen(true);
   };
 
+  const handleFilterNotifications = async (unreadOnly: boolean) => {
+    if (!isMyGarden || notificationLoading) return;
+    try {
+      await loadNotifications({ unreadOnly, page: 0, append: false });
+    } catch {
+      // 필터 변경 실패 시 기존 상태를 유지한다.
+    }
+  };
+
+  const handleLoadMoreNotifications = async () => {
+    if (!isMyGarden || !notificationHasNext || notificationLoading) return;
+    try {
+      await loadNotifications({
+        unreadOnly: notificationUnreadOnly,
+        page: notificationPage + 1,
+        append: true,
+      });
+    } catch {
+      // 추가 로딩 실패 시 기존 상태를 유지한다.
+    }
+  };
+
   const handleMarkNotificationRead = async (notification: UserNotificationResponseDto) => {
-    if (!notification.id || notification.isRead) return;
+    if (!notification.id) return;
+    if (notification.isRead) {
+      if (notification.deepLink) {
+        setIsNotificationOpen(false);
+        navigate(notification.deepLink);
+      }
+      return;
+    }
 
     try {
       const response = await markNotificationRead(notification.id);
@@ -889,6 +1123,10 @@ export default function MyGarden() {
       setNotifications((prev) =>
         prev.map((item) => (item.id === readPayload.id ? { ...item, isRead: readPayload.isRead } : item))
       );
+      if (notification.deepLink) {
+        setIsNotificationOpen(false);
+        navigate(notification.deepLink);
+      }
     } catch {
       // 읽음 처리 실패 시 기존 상태를 유지한다.
     }
@@ -900,6 +1138,32 @@ export default function MyGarden() {
       setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
     } catch {
       // 전체 읽음 실패 시 기존 상태를 유지한다.
+    }
+  };
+
+  const handleToggleMissionNotification = async () => {
+    if (!notificationSettings || !isMyGarden) return;
+    try {
+      const response = await updateNotificationSettings({
+        ...notificationSettings,
+        missionEnabled: !notificationSettings.missionEnabled,
+      });
+      setNotificationSettings(response.data);
+    } catch {
+      // 설정 변경 실패 시 기존 상태를 유지한다.
+    }
+  };
+
+  const handleCheer = async () => {
+    if (!normalizedUserId || isMyGarden || isCheering) return;
+    try {
+      setIsCheering(true);
+      const response = await cheerUser(normalizedUserId, 'WATER');
+      setCheerStatus(response.data);
+    } catch {
+      // 응원 실패 시 기존 상태를 유지한다.
+    } finally {
+      setIsCheering(false);
     }
   };
 
@@ -1029,6 +1293,37 @@ export default function MyGarden() {
               </LevelCard>
             )}
 
+            <SocialCard>
+              <SocialTitle>주간 정원 랭킹</SocialTitle>
+              {!isMyGarden && cheerStatus && (
+                <CheerRow>
+                  <CheerSummary>
+                    오늘 받은 응원 {cheerStatus.receivedTodayCount}회 · 누적 {cheerStatus.receivedTotalCount}회
+                  </CheerSummary>
+                  <CheerButton
+                    type="button"
+                    $active={cheerStatus.canCheerToday}
+                    onClick={handleCheer}
+                    disabled={!cheerStatus.canCheerToday || isCheering}
+                  >
+                    {cheerStatus.canCheerToday ? (isCheering ? '응원 중...' : '💧 물주기 응원') : '오늘 응원 완료'}
+                  </CheerButton>
+                </CheerRow>
+              )}
+              <LeaderboardList>
+                {leaderboard.slice(0, 5).map((item, index) => (
+                  <LeaderItem key={item.userId}>
+                    <span>
+                      {index + 1}위 · {item.username}
+                    </span>
+                    <span>
+                      주간 {item.weeklyPostCount}회 · {item.streakDays}일 · {item.growthRate}%
+                    </span>
+                  </LeaderItem>
+                ))}
+              </LeaderboardList>
+            </SocialCard>
+
             {isMyGarden && levelProgress && isLevelModalOpen && (
               <ModalOverlay role="dialog" aria-modal="true" aria-label="레벨 상세 정보">
                 <ModalSheet>
@@ -1126,7 +1421,37 @@ export default function MyGarden() {
                     </CloseModalButton>
                   </NotificationHeader>
 
+                  <NotificationToolRow>
+                    <NotificationFilterGroup>
+                      <FilterButton
+                        type="button"
+                        $active={!notificationUnreadOnly}
+                        onClick={() => handleFilterNotifications(false)}
+                      >
+                        전체
+                      </FilterButton>
+                      <FilterButton
+                        type="button"
+                        $active={notificationUnreadOnly}
+                        onClick={() => handleFilterNotifications(true)}
+                      >
+                        미읽음
+                      </FilterButton>
+                    </NotificationFilterGroup>
+                    {isMyGarden && notificationSettings && (
+                      <TinyActionButton type="button" onClick={handleToggleMissionNotification}>
+                        미션알림 {notificationSettings.missionEnabled ? 'ON' : 'OFF'}
+                      </TinyActionButton>
+                    )}
+                  </NotificationToolRow>
+
                   <NotificationList>
+                    {notificationLoading && notifications.length === 0 && (
+                      <NotificationItem as="div" $read={false} $severity="INFO">
+                        <strong>불러오는 중...</strong>
+                        <p>알림 데이터를 동기화하고 있어요.</p>
+                      </NotificationItem>
+                    )}
                     {notifications.length === 0 && (
                       <NotificationItem as="div" $read={false} $severity="INFO">
                         <strong>알림이 없어요</strong>
@@ -1150,6 +1475,15 @@ export default function MyGarden() {
                   </NotificationList>
 
                   <NotificationActions>
+                    {notificationHasNext && (
+                      <LoadMoreButton
+                        type="button"
+                        onClick={handleLoadMoreNotifications}
+                        disabled={notificationLoading}
+                      >
+                        {notificationLoading ? '로딩 중...' : '더 보기'}
+                      </LoadMoreButton>
+                    )}
                     <MarkAllButton type="button" onClick={handleMarkAllNotificationsRead}>
                       전체 읽음 처리
                     </MarkAllButton>

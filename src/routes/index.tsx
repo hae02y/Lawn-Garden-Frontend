@@ -13,6 +13,7 @@ import Participant from '@/pages/participant/Participant';
 import MyGarden from '@/pages/mygarden/MyGarden';
 import Greenhouse from '@/pages/greenhouse/Greenhouse';
 import MailSettingsPage from '@/pages/settings/MailSettingsPage';
+import NotificationSettingsPage from '@/pages/settings/NotificationSettingsPage';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: 'mygarden/:userId', element: <MyGarden /> },
           { path: 'greenhouse', element: <Greenhouse /> },
           { path: 'settings/mail', element: <MailSettingsPage /> },
+          { path: 'settings/notifications', element: <NotificationSettingsPage /> },
         ],
       },
       {

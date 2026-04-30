@@ -181,6 +181,7 @@ export interface UserNotificationResponseDto {
   message: string;
   severity: NotificationSeverity;
   code: string;
+  deepLink: string | null;
   referenceDate: string | null;
   isRead: boolean;
   createdAt: string | null;
@@ -189,4 +190,44 @@ export interface UserNotificationResponseDto {
 export interface NotificationReadResponseDto {
   id: number;
   isRead: boolean;
+}
+
+export interface UserNotificationSettingDto {
+  missionEnabled: boolean;
+  streakRiskEnabled: boolean;
+  levelUpEnabled: boolean;
+  rewardEnabled: boolean;
+  quietHoursEnabled: boolean;
+  quietStartHour: number;
+  quietEndHour: number;
+}
+
+export interface UserAchievementResponseDto {
+  code:
+    | 'FIRST_WATERING'
+    | 'STREAK_7'
+    | 'LEVEL_3'
+    | 'LEVEL_5'
+    | 'MONTHLY_12'
+    | 'STREAK_30';
+  title: string;
+  description: string;
+  unlocked: boolean;
+  unlockedAt: string | null;
+}
+
+export type CheerType = 'WATER' | 'HEART';
+
+export interface CheerStatusResponseDto {
+  canCheerToday: boolean;
+  receivedTodayCount: number;
+  receivedTotalCount: number;
+}
+
+export interface WeeklyLeaderboardItemDto {
+  userId: number;
+  username: string;
+  weeklyPostCount: number;
+  streakDays: number;
+  growthRate: number;
 }
