@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Wrapper from '@/styles/Wrapper';
 import PageHeader from '@/components/PageHeader';
 import Loading from '@/components/Loading';
@@ -37,6 +37,22 @@ import type {
 } from '@/types/api';
 import { getErrorMessage } from '@/utils/error';
 
+type GardenSeason = 'spring' | 'summer' | 'autumn' | 'winter';
+
+const seasonCardGradient: Record<GardenSeason, string> = {
+  spring: 'linear-gradient(165deg, #fff1f6 0%, #f5efe2 60%, #edf8ee 100%)',
+  summer: 'linear-gradient(165deg, #fff5dd 0%, #eff7e9 58%, #e8f6f4 100%)',
+  autumn: 'linear-gradient(165deg, #fff1e3 0%, #f8ead8 56%, #f2e9dc 100%)',
+  winter: 'linear-gradient(165deg, #eef5ff 0%, #f4f8ff 58%, #f0f4f8 100%)',
+};
+
+const seasonAccentMap: Record<GardenSeason, string> = {
+  spring: '#c9759a',
+  summer: '#cc8a37',
+  autumn: '#b36b2f',
+  winter: '#5f86b7',
+};
+
 const PageContainer = styled.section`
   width: min(92vw, 430px);
   margin: 0 auto;
@@ -53,6 +69,13 @@ const PageContainer = styled.section`
   }
 `;
 
+const SeasonShell = styled.div<{ $season: GardenSeason }>`
+  border-radius: 24px;
+  padding: 0.35rem 0.3rem 0.7rem;
+  background: ${({ $season }) => seasonCardGradient[$season]};
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+`;
+
 const FrameContainer = styled.section`
   width: 100%;
   flex: 1 1 auto;
@@ -60,12 +83,12 @@ const FrameContainer = styled.section`
   max-height: clamp(260px, 48vh, 420px);
 `;
 
-const TreeInfoBox = styled.section`
+const TreeInfoBox = styled.section<{ $season: GardenSeason }>`
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #faf1e6;
+  background: ${({ $season }) => seasonCardGradient[$season]};
   width: 100%;
   border-radius: 25px;
   padding: 0.65rem 0.75rem;
@@ -89,8 +112,8 @@ const GraphCard = styled.div`
   padding: 0.45rem;
 `;
 
-const LevelCard = styled.section`
-  background: linear-gradient(165deg, #faf1e6 0%, #f4eadc 55%, #efe3d3 100%);
+const LevelCard = styled.section<{ $season: GardenSeason }>`
+  background: ${({ $season }) => seasonCardGradient[$season]};
   border-radius: 25px;
   padding: 0.72rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -122,8 +145,8 @@ const LevelHeading = styled.div`
   }
 `;
 
-const BadgePill = styled.div`
-  background: linear-gradient(140deg, #3d8d7a 0%, #6aa58f 100%);
+const BadgePill = styled.div<{ $season: GardenSeason }>`
+  background: ${({ $season }) => `linear-gradient(140deg, ${seasonAccentMap[$season]} 0%, #6aa58f 100%)`};
   color: #ffffff;
   border-radius: 999px;
   padding: 0.26rem 0.58rem;
@@ -360,10 +383,10 @@ const BellButton = styled.button<{ $hasUnread: boolean }>`
   background: ${({ $hasUnread }) => ($hasUnread ? '#d17c43' : '#3d8d7a')};
 `;
 
-const NotificationPanel = styled.section`
+const NotificationPanel = styled.section<{ $season: GardenSeason }>`
   width: min(92vw, 430px);
   max-height: min(72vh, 540px);
-  background: #f6ecdf;
+  background: ${({ $season }) => seasonCardGradient[$season]};
   border-radius: 20px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -479,9 +502,9 @@ const LoadMoreButton = styled.button`
   background: #dce7e1;
 `;
 
-const SocialCard = styled.div`
+const SocialCard = styled.div<{ $season: GardenSeason }>`
   margin-top: 0.85rem;
-  background: rgba(255, 255, 255, 0.74);
+  background: ${({ $season }) => seasonCardGradient[$season]};
   border-radius: 14px;
   padding: 0.68rem;
 `;
@@ -534,6 +557,82 @@ const LeaderItem = styled.li`
   gap: 0.4rem;
   color: #49675a;
   font-size: 0.72rem;
+`;
+
+const LeaderName = styled.span<{ $mine: boolean }>`
+  font-weight: ${({ $mine }) => ($mine ? 800 : 700)};
+  color: ${({ $mine }) => ($mine ? '#255448' : '#49675a')};
+`;
+
+const RankBadge = styled.span<{ $rank: number }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  color: ${({ $rank }) => ($rank <= 3 ? '#ffffff' : '#49675a')};
+  background: ${({ $rank }) => {
+    if ($rank === 1) return '#d6a529';
+    if ($rank === 2) return '#80909e';
+    if ($rank === 3) return '#b07854';
+    return '#d6e6de';
+  }};
+`;
+
+const GrowthText = styled.span<{ $positive: boolean }>`
+  color: ${({ $positive }) => ($positive ? '#2f835f' : '#ab6a50')};
+  font-weight: 700;
+`;
+
+const NotificationSentinel = styled.div`
+  height: 1px;
+`;
+
+const toastIn = keyframes`
+  0% { opacity: 0; transform: translateY(12px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const toastOut = keyframes`
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
+`;
+
+const ToastStack = styled.div`
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  z-index: 1200;
+  pointer-events: none;
+`;
+
+const UnlockToast = styled.div<{ $leaving: boolean }>`
+  min-width: 240px;
+  max-width: min(86vw, 340px);
+  border-radius: 12px;
+  background: linear-gradient(145deg, #355f52 0%, #47856f 100%);
+  color: #ffffff;
+  padding: 0.58rem 0.66rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  animation: ${({ $leaving }) => ($leaving ? toastOut : toastIn)} 0.28s ease forwards;
+
+  strong {
+    font-size: 0.8rem;
+  }
+
+  p {
+    margin-top: 0.12rem;
+    font-size: 0.72rem;
+    line-height: 1.32;
+    opacity: 0.96;
+  }
 `;
 
 const MissionCard = styled.div`
@@ -605,9 +704,9 @@ const StreakBonus = styled.div`
   white-space: nowrap;
 `;
 
-const CalendarCard = styled.div`
+const CalendarCard = styled.div<{ $season: GardenSeason }>`
   margin-top: 0.85rem;
-  background: rgba(255, 255, 255, 0.74);
+  background: ${({ $season }) => seasonCardGradient[$season]};
   border-radius: 14px;
   padding: 0.68rem;
 `;
@@ -626,9 +725,9 @@ const WeekHeader = styled.div`
   gap: 0.18rem;
 `;
 
-const WeekHeaderCell = styled.div`
+const WeekHeaderCell = styled.div<{ $weekend?: boolean }>`
   font-size: 0.66rem;
-  color: #7c8f84;
+  color: ${({ $weekend }) => ($weekend ? '#b9735b' : '#7c8f84')};
   text-align: center;
   font-weight: 700;
 `;
@@ -640,7 +739,8 @@ const CalendarGrid = styled.div`
   gap: 0.18rem;
 `;
 
-const CalendarCell = styled.div<{ $active: boolean; $today: boolean }>`
+const CalendarCell = styled.button<{ $active: boolean; $today: boolean; $weekend: boolean; $selected: boolean }>`
+  border: none;
   height: 24px;
   border-radius: 7px;
   display: flex;
@@ -648,14 +748,56 @@ const CalendarCell = styled.div<{ $active: boolean; $today: boolean }>`
   justify-content: center;
   font-size: 0.62rem;
   font-weight: 700;
-  color: ${({ $active }) => ($active ? '#ffffff' : '#84988d')};
-  background: ${({ $active }) => ($active ? '#3d8d7a' : '#f2f0ed')};
+  color: ${({ $active, $weekend }) => ($active ? '#ffffff' : $weekend ? '#b07a64' : '#84988d')};
+  background: ${({ $active, $selected }) => ($active ? '#3d8d7a' : $selected ? '#e8efe8' : '#f2f0ed')};
   outline: ${({ $today }) => ($today ? '1px dashed #3d8d7a' : 'none')};
+  cursor: pointer;
+  box-shadow: ${({ $selected }) => ($selected ? 'inset 0 0 0 1px #8cae9f' : 'none')};
+
+  &:disabled {
+    cursor: default;
+    color: transparent;
+    background: #f4f2ef;
+    box-shadow: none;
+  }
 `;
 
-const TrophyCard = styled.div`
+const CalendarMeta = styled.div`
+  margin-top: 0.42rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 0.42rem 0.5rem;
+  color: #5b766a;
+  font-size: 0.72rem;
+`;
+
+const CalendarNavRow = styled.div`
+  margin-top: 0.35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const CalendarNavButton = styled.button`
+  border: none;
+  border-radius: 999px;
+  padding: 0.24rem 0.52rem;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #dce8e2;
+  color: #3d6458;
+`;
+
+const CalendarMonthText = styled.p`
+  color: #5f766c;
+  font-size: 0.72rem;
+  font-weight: 700;
+`;
+
+const TrophyCard = styled.div<{ $season: GardenSeason }>`
   margin-top: 0.85rem;
-  background: rgba(255, 255, 255, 0.74);
+  background: ${({ $season }) => seasonCardGradient[$season]};
   border-radius: 14px;
   padding: 0.68rem;
 `;
@@ -732,6 +874,27 @@ const achievementEmojiMap: Record<UserAchievementResponseDto['code'], string> = 
   STREAK_30: '🏆',
 };
 
+const achievementLabelMap: Record<UserAchievementResponseDto['code'], string> = {
+  FIRST_WATERING: '첫 물주기 달성',
+  STREAK_7: '7일 연속 인증',
+  LEVEL_3: 'Lv.3 도달',
+  LEVEL_5: 'Lv.5 도달',
+  MONTHLY_12: '월간 12회 인증',
+  STREAK_30: '연속 30일 인증',
+};
+
+const getGardenSeason = (monthIndex: number): GardenSeason => {
+  const month = monthIndex + 1;
+  if ([3, 4, 5].includes(month)) return 'spring';
+  if ([6, 7, 8].includes(month)) return 'summer';
+  if ([9, 10, 11].includes(month)) return 'autumn';
+  return 'winter';
+};
+
+const formatMonthLabel = (date: Date): string => {
+  return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long' }).format(date);
+};
+
 const formatHistoryDate = (value: string | null) => {
   if (!value) return '시간 정보 없음';
   const date = new Date(value);
@@ -799,8 +962,20 @@ export default function MyGarden() {
   const [leaderboard, setLeaderboard] = useState<WeeklyLeaderboardItemDto[]>([]);
   const [cheerStatus, setCheerStatus] = useState<CheerStatusResponseDto | null>(null);
   const [isCheering, setIsCheering] = useState(false);
+  const [viewMonthDate, setViewMonthDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [unlockToasts, setUnlockToasts] = useState<Array<{ id: string; code: UserAchievementResponseDto['code']; leaving: boolean }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const notificationListRef = useRef<HTMLDivElement | null>(null);
+  const notificationSentinelRef = useRef<HTMLDivElement | null>(null);
+  const notificationLoadLockRef = useRef(false);
+  const achievementsRef = useRef<UserAchievementResponseDto[]>([]);
+  const notifiedAchievementRef = useRef<Set<UserAchievementResponseDto['code']>>(new Set());
 
   const normalizedUserId = useMemo(() => {
     if (!userId) return null;
@@ -811,7 +986,7 @@ export default function MyGarden() {
   const effectiveUserId = normalizedUserId ?? storedUserId ?? null;
   const isMyGarden = !!storedUserId && effectiveUserId === storedUserId;
 
-  const applyNotificationPage = (
+  const applyNotificationPage = useCallback((
     pageResponse: PageResponse<UserNotificationResponseDto>,
     append: boolean
   ) => {
@@ -828,9 +1003,9 @@ export default function MyGarden() {
     });
     setNotificationPage(pageResponse.number);
     setNotificationHasNext(pageResponse.number + 1 < pageResponse.totalPages);
-  };
+  }, []);
 
-  const loadNotifications = async ({
+  const loadNotifications = useCallback(async ({
     unreadOnly,
     page,
     append,
@@ -840,16 +1015,54 @@ export default function MyGarden() {
     append: boolean;
   }) => {
     if (!isMyGarden) return;
+    if (notificationLoadLockRef.current) return;
 
     try {
+      notificationLoadLockRef.current = true;
       setNotificationLoading(true);
       const response = await getMyNotifications({ unreadOnly, page, size: 20 });
       applyNotificationPage(response.data, append);
       setNotificationUnreadOnly(unreadOnly);
     } finally {
       setNotificationLoading(false);
+      notificationLoadLockRef.current = false;
     }
-  };
+  }, [applyNotificationPage, isMyGarden]);
+
+  const enqueueUnlockToast = useCallback((code: UserAchievementResponseDto['code']) => {
+    const toastId = `${code}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUnlockToasts((prev) => [...prev, { id: toastId, code, leaving: false }]);
+
+    window.setTimeout(() => {
+      setUnlockToasts((prev) => prev.map((item) => (item.id === toastId ? { ...item, leaving: true } : item)));
+      window.setTimeout(() => {
+        setUnlockToasts((prev) => prev.filter((item) => item.id !== toastId));
+      }, 280);
+    }, 2200);
+  }, []);
+
+  const applyAchievements = useCallback((incoming: UserAchievementResponseDto[], shouldNotify: boolean) => {
+    const previous = achievementsRef.current;
+    if (!shouldNotify || previous.length === 0) {
+      const seeded = new Set(incoming.filter((item) => item.unlocked).map((item) => item.code));
+      notifiedAchievementRef.current = seeded;
+      achievementsRef.current = incoming;
+      setAchievements(incoming);
+      return;
+    }
+
+    const previousUnlocked = new Set(previous.filter((item) => item.unlocked).map((item) => item.code));
+    const nextUnlocked = incoming.filter((item) => item.unlocked).map((item) => item.code);
+    nextUnlocked.forEach((code) => {
+      if (!previousUnlocked.has(code) && !notifiedAchievementRef.current.has(code)) {
+        enqueueUnlockToast(code);
+        notifiedAchievementRef.current.add(code);
+      }
+    });
+
+    achievementsRef.current = incoming;
+    setAchievements(incoming);
+  }, [enqueueUnlockToast]);
 
   useEffect(() => {
     if (!effectiveUserId) {
@@ -922,7 +1135,7 @@ export default function MyGarden() {
           setNotificationHasNext(false);
         }
         setNotificationUnreadOnly(false);
-        setAchievements(achievementRes?.data ?? []);
+        applyAchievements(achievementRes?.data ?? [], false);
         setLeaderboard(leaderboardRes.data);
         setCheerStatus(cheerStatusRes?.data ?? null);
         setNotificationSettings(notificationSettingsRes?.data ?? null);
@@ -945,7 +1158,7 @@ export default function MyGarden() {
     };
 
     fetchUser();
-  }, [effectiveUserId, isMyGarden, storedUserId, normalizedUserId]);
+  }, [effectiveUserId, isMyGarden, storedUserId, normalizedUserId, applyAchievements, applyNotificationPage]);
 
   const weeklyCount = useMemo(() => {
     if (!user?.username) return 0;
@@ -959,7 +1172,9 @@ export default function MyGarden() {
     return match?.commitCount ?? 0;
   }, [user, todayStats]);
 
-  const themeMode = new Date().getHours() >= 6 && new Date().getHours() < 18 ? 'morning' : 'night';
+  const now = new Date();
+  const themeMode = now.getHours() >= 6 && now.getHours() < 18 ? 'morning' : 'night';
+  const gardenSeason = getGardenSeason(now.getMonth());
   const treeName = getTreeName(weeklyCount);
   const progressTotal = 20;
   const progressValue = Math.min(progressTotal, weeklyCount);
@@ -999,30 +1214,46 @@ export default function MyGarden() {
   );
 
   const calendarDays = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const year = viewMonthDate.getFullYear();
+    const month = viewMonthDate.getMonth();
     const first = new Date(year, month, 1);
     const last = new Date(year, month + 1, 0);
-    const items: Array<{ day: number | null; active: boolean; today: boolean }> = [];
+    const items: Array<{
+      day: number | null;
+      active: boolean;
+      today: boolean;
+      key: string | null;
+      weekend: boolean;
+      selected: boolean;
+    }> = [];
     const postSet = new Set(myPostDateKeys);
+    const todayKey = toDateKey(new Date());
 
     for (let i = 0; i < first.getDay(); i += 1) {
-      items.push({ day: null, active: false, today: false });
+      items.push({ day: null, active: false, today: false, key: null, weekend: i === 0 || i === 6, selected: false });
     }
 
     for (let day = 1; day <= last.getDate(); day += 1) {
       const date = new Date(year, month, day);
       const key = toDateKey(date);
-      items.push({ day, active: postSet.has(key), today: key === toDateKey(now) });
+      const dayOfWeek = date.getDay();
+      items.push({
+        day,
+        active: postSet.has(key),
+        today: key === todayKey,
+        key,
+        weekend: dayOfWeek === 0 || dayOfWeek === 6,
+        selected: selectedDateKey === key,
+      });
     }
 
     while (items.length % 7 !== 0) {
-      items.push({ day: null, active: false, today: false });
+      const slot = items.length % 7;
+      items.push({ day: null, active: false, today: false, key: null, weekend: slot === 0 || slot === 6, selected: false });
     }
 
     return items;
-  }, [myPostDateKeys]);
+  }, [myPostDateKeys, selectedDateKey, viewMonthDate]);
 
   const trophies = useMemo(() => {
     if (achievements.length > 0) {
@@ -1042,6 +1273,30 @@ export default function MyGarden() {
       { title: '연속 30일 인증', unlocked: streakDays >= 30, emoji: '🏆' },
     ];
   }, [achievements, levelProgress, streakDays, calendarDays]);
+
+  const selectedCalendarMeta = useMemo(() => {
+    if (!selectedDateKey) return null;
+    const isToday = selectedDateKey === toDateKey(new Date());
+    const isActive = myPostDateKeys.includes(selectedDateKey);
+    if (isActive) {
+      return {
+        title: `${selectedDateKey} 기록 완료`,
+        description: '이 날은 물주기 인증을 완료했어요.',
+      };
+    }
+    return {
+      title: `${selectedDateKey} 기록 없음`,
+      description: isToday ? '오늘 인증이 아직 없어요. 지금 바로 인증해보세요.' : '해당 날짜에는 인증 기록이 없습니다.',
+    };
+  }, [myPostDateKeys, selectedDateKey]);
+
+  const rankedTopFive = useMemo(() => leaderboard.slice(0, 5), [leaderboard]);
+  const myLeaderboardRank = useMemo(() => {
+    if (!user) return null;
+    const index = leaderboard.findIndex((item) => item.username === user.username);
+    if (index < 0) return null;
+    return { rank: index + 1, item: leaderboard[index] };
+  }, [leaderboard, user]);
 
   const unreadCount = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
 
@@ -1064,6 +1319,51 @@ export default function MyGarden() {
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isLevelModalOpen, isNotificationOpen]);
+
+  useEffect(() => {
+    const todayKey = toDateKey(new Date());
+    if (!selectedDateKey && calendarDays.some((cell) => cell.key === todayKey)) {
+      setSelectedDateKey(todayKey);
+    }
+  }, [calendarDays, selectedDateKey]);
+
+  useEffect(() => {
+    if (!isNotificationOpen || !isMyGarden || !notificationHasNext || notificationLoading) return;
+    const rootElement = notificationListRef.current;
+    const target = notificationSentinelRef.current;
+    if (!rootElement || !target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            void loadNotifications({
+              unreadOnly: notificationUnreadOnly,
+              page: notificationPage + 1,
+              append: true,
+            });
+          }
+        });
+      },
+      { root: rootElement, threshold: 0.3 }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [isMyGarden, isNotificationOpen, notificationHasNext, notificationLoading, notificationPage, notificationUnreadOnly, loadNotifications]);
+
+  useEffect(() => {
+    if (!isLevelModalOpen || !isMyGarden) return;
+    const refresh = async () => {
+      try {
+        const response = await refreshMyAchievements();
+        applyAchievements(response.data, true);
+      } catch {
+        // 업적 재동기화 실패 시 기존 상태를 유지한다.
+      }
+    };
+    void refresh();
+  }, [isLevelModalOpen, isMyGarden, applyAchievements]);
 
   const handleBadgeClick = (badgeKey: string, unlocked: boolean) => {
     setPreviewBadge(badgeKey);
@@ -1167,6 +1467,16 @@ export default function MyGarden() {
     }
   };
 
+  const handleMoveMonth = (offset: number) => {
+    setViewMonthDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+    setSelectedDateKey(null);
+  };
+
+  const handleSelectCalendarCell = (key: string | null) => {
+    if (!key) return;
+    setSelectedDateKey(key);
+  };
+
   return (
     <Wrapper>
       <PageHeader
@@ -1178,21 +1488,23 @@ export default function MyGarden() {
         ) : undefined}
       />
       <PageContainer>
-        {isLoading && <Loading />}
-        {!isLoading && errorMessage && <Notice>{errorMessage}</Notice>}
+        <SeasonShell $season={gardenSeason}>
+          {isLoading && <Loading />}
+          {!isLoading && errorMessage && <Notice>{errorMessage}</Notice>}
 
-        {!isLoading && !errorMessage && user && (
-          <>
+          {!isLoading && !errorMessage && user && (
+            <>
             <FrameContainer>
               <FrameViewport
                 themeMode={themeMode}
+                season={gardenSeason}
                 treeState={{ totalDate: weeklyCount, currentDate: todayCount }}
                 treeBadge={levelProgress?.currentBadge ?? user.levelBadge}
                 levelUpPulse={justLeveledUp}
               />
             </FrameContainer>
 
-            <TreeInfoBox>
+            <TreeInfoBox $season={gardenSeason}>
               <TreeInfoText>
                 <h3>
                   지금 내 나무는?
@@ -1213,7 +1525,7 @@ export default function MyGarden() {
             </TreeInfoBox>
 
             {isMyGarden && levelProgress && (
-              <LevelCard>
+              <LevelCard $season={gardenSeason}>
                 <LevelHeader>
                   <LevelHeading>
                     <h3>레벨 진행도</h3>
@@ -1221,7 +1533,7 @@ export default function MyGarden() {
                       <strong>{user.username}</strong> 님 · Lv.{levelProgress.currentLevel} {levelProgress.currentLevelName}
                     </p>
                   </LevelHeading>
-                  <BadgePill>
+                  <BadgePill $season={gardenSeason}>
                     {badgeInfo.emoji} {badgeInfo.label}
                   </BadgePill>
                 </LevelHeader>
@@ -1293,7 +1605,7 @@ export default function MyGarden() {
               </LevelCard>
             )}
 
-            <SocialCard>
+            <SocialCard $season={gardenSeason}>
               <SocialTitle>주간 정원 랭킹</SocialTitle>
               {!isMyGarden && cheerStatus && (
                 <CheerRow>
@@ -1311,16 +1623,34 @@ export default function MyGarden() {
                 </CheerRow>
               )}
               <LeaderboardList>
-                {leaderboard.slice(0, 5).map((item, index) => (
+                {rankedTopFive.map((item, index) => (
                   <LeaderItem key={item.userId}>
+                    <LeaderName $mine={item.username === user.username}>
+                      <RankBadge $rank={index + 1}>{index + 1}위</RankBadge> · {item.username}
+                    </LeaderName>
                     <span>
-                      {index + 1}위 · {item.username}
-                    </span>
-                    <span>
-                      주간 {item.weeklyPostCount}회 · {item.streakDays}일 · {item.growthRate}%
+                      주간 {item.weeklyPostCount}회 · {item.streakDays}일 ·{' '}
+                      <GrowthText $positive={item.growthRate >= 0}>
+                        {item.growthRate >= 0 ? '+' : ''}
+                        {item.growthRate}%
+                      </GrowthText>
                     </span>
                   </LeaderItem>
                 ))}
+                {myLeaderboardRank && myLeaderboardRank.rank > 5 && (
+                  <LeaderItem>
+                    <LeaderName $mine>
+                      내 순위 · {myLeaderboardRank.rank}위 ({myLeaderboardRank.item.username})
+                    </LeaderName>
+                    <span>
+                      주간 {myLeaderboardRank.item.weeklyPostCount}회 · {myLeaderboardRank.item.streakDays}일 ·{' '}
+                      <GrowthText $positive={myLeaderboardRank.item.growthRate >= 0}>
+                        {myLeaderboardRank.item.growthRate >= 0 ? '+' : ''}
+                        {myLeaderboardRank.item.growthRate}%
+                      </GrowthText>
+                    </span>
+                  </LeaderItem>
+                )}
               </LeaderboardList>
             </SocialCard>
 
@@ -1380,23 +1710,48 @@ export default function MyGarden() {
                       ))}
                     </HistoryList>
 
-                    <CalendarCard>
+                    <CalendarCard $season={gardenSeason}>
                       <CalendarTitle>월간 성장 캘린더</CalendarTitle>
+                      <CalendarNavRow>
+                        <CalendarNavButton type="button" onClick={() => handleMoveMonth(-1)}>
+                          이전 달
+                        </CalendarNavButton>
+                        <CalendarMonthText>{formatMonthLabel(viewMonthDate)}</CalendarMonthText>
+                        <CalendarNavButton type="button" onClick={() => handleMoveMonth(1)}>
+                          다음 달
+                        </CalendarNavButton>
+                      </CalendarNavRow>
                       <WeekHeader>
-                        {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
-                          <WeekHeaderCell key={day}>{day}</WeekHeaderCell>
+                        {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+                          <WeekHeaderCell key={day} $weekend={index === 0 || index === 6}>
+                            {day}
+                          </WeekHeaderCell>
                         ))}
                       </WeekHeader>
                       <CalendarGrid>
                         {calendarDays.map((cell, index) => (
-                          <CalendarCell key={`${cell.day}-${index}`} $active={cell.active} $today={cell.today}>
+                          <CalendarCell
+                            type="button"
+                            key={`${cell.key ?? 'empty'}-${index}`}
+                            $active={cell.active}
+                            $today={cell.today}
+                            $weekend={cell.weekend}
+                            $selected={cell.selected}
+                            onClick={() => handleSelectCalendarCell(cell.key)}
+                            disabled={!cell.key}
+                          >
                             {cell.day ?? ''}
                           </CalendarCell>
                         ))}
                       </CalendarGrid>
+                      <CalendarMeta>
+                        {selectedCalendarMeta
+                          ? `${selectedCalendarMeta.title} · ${selectedCalendarMeta.description}`
+                          : '날짜를 눌러 그날의 인증 상태를 확인해보세요.'}
+                      </CalendarMeta>
                     </CalendarCard>
 
-                    <TrophyCard>
+                    <TrophyCard $season={gardenSeason}>
                       <TrophyTitle>업적 진열대</TrophyTitle>
                       <TrophyGrid>
                         {trophies.map((trophy) => (
@@ -1413,7 +1768,7 @@ export default function MyGarden() {
 
             {isNotificationOpen && (
               <ModalOverlay role="dialog" aria-modal="true" aria-label="알림 센터">
-                <NotificationPanel>
+                <NotificationPanel $season={gardenSeason}>
                   <NotificationHeader>
                     <h3>알림 센터</h3>
                     <CloseModalButton type="button" onClick={() => setIsNotificationOpen(false)}>
@@ -1445,7 +1800,7 @@ export default function MyGarden() {
                     )}
                   </NotificationToolRow>
 
-                  <NotificationList>
+                  <NotificationList ref={notificationListRef}>
                     {notificationLoading && notifications.length === 0 && (
                       <NotificationItem as="div" $read={false} $severity="INFO">
                         <strong>불러오는 중...</strong>
@@ -1472,6 +1827,7 @@ export default function MyGarden() {
                         </NotificationItem>
                       );
                     })}
+                    <NotificationSentinel ref={notificationSentinelRef} />
                   </NotificationList>
 
                   <NotificationActions>
@@ -1491,9 +1847,18 @@ export default function MyGarden() {
                 </NotificationPanel>
               </ModalOverlay>
             )}
-          </>
-        )}
+            </>
+          )}
+        </SeasonShell>
       </PageContainer>
+      <ToastStack>
+        {unlockToasts.map((toast) => (
+          <UnlockToast key={toast.id} $leaving={toast.leaving}>
+            <strong>{achievementEmojiMap[toast.code]} 업적 해금!</strong>
+            <p>{achievementLabelMap[toast.code]}를 달성했어요.</p>
+          </UnlockToast>
+        ))}
+      </ToastStack>
     </Wrapper>
   );
 }

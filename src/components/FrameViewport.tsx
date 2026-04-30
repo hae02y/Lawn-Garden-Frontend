@@ -12,8 +12,11 @@ interface TreeState {
   currentDate: number;
 }
 
+type GardenSeason = 'spring' | 'summer' | 'autumn' | 'winter';
+
 interface FrameViewportProps {
   themeMode: 'morning' | 'night';
+  season?: GardenSeason;
   treeState: TreeState;
   treeBadge?: string;
   levelUpPulse?: boolean;
@@ -21,6 +24,7 @@ interface FrameViewportProps {
 
 interface StyledFrameViewportProps {
   $themeMode: 'morning' | 'night';
+  $season: GardenSeason;
 }
 
 const FrameViewportContainer = styled.div<StyledFrameViewportProps>`
@@ -33,6 +37,19 @@ const FrameViewportContainer = styled.div<StyledFrameViewportProps>`
     $themeMode === 'morning'
       ? `url(${morningBg}) center / cover no-repeat`
       : `url(${nightBg}) center / cover no-repeat`};
+`;
+
+const SeasonTint = styled.div<{ $season: GardenSeason }>`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: ${({ $season }) => {
+    if ($season === 'spring') return 'linear-gradient(180deg, rgba(255, 225, 236, 0.28) 0%, rgba(247, 253, 240, 0.06) 60%)';
+    if ($season === 'summer') return 'linear-gradient(180deg, rgba(255, 244, 198, 0.25) 0%, rgba(232, 255, 244, 0.08) 62%)';
+    if ($season === 'autumn') return 'linear-gradient(180deg, rgba(255, 214, 171, 0.26) 0%, rgba(255, 240, 212, 0.08) 62%)';
+    return 'linear-gradient(180deg, rgba(210, 231, 255, 0.22) 0%, rgba(240, 248, 255, 0.08) 62%)';
+  }};
 `;
 
 const DayInfoText = styled.div`
@@ -227,6 +244,26 @@ const LevelUpBadgePop = styled(motion.div)`
   letter-spacing: 0.02em;
 `;
 
+const flutter = keyframes`
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0.35; }
+  50% { transform: translate(6px, -8px) rotate(12deg); opacity: 0.95; }
+  100% { transform: translate(0, 0) rotate(0deg); opacity: 0.35; }
+`;
+
+const SeasonParticle = styled.div<{ $x: string; $y: string; $size: number; $color: string; $delay: string }>`
+  position: absolute;
+  left: ${({ $x }) => $x};
+  top: ${({ $y }) => $y};
+  width: ${({ $size }) => `${$size}px`};
+  height: ${({ $size }) => `${$size}px`};
+  border-radius: 999px;
+  background: ${({ $color }) => $color};
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
+  z-index: 3;
+  animation: ${flutter} 3.2s ease-in-out infinite;
+  animation-delay: ${({ $delay }) => $delay};
+`;
+
 const badgeLevelMap: Record<string, number> = {
   SPROUT: 1,
   SAPLING: 2,
@@ -237,6 +274,7 @@ const badgeLevelMap: Record<string, number> = {
 
 export function FrameViewport({
   themeMode,
+  season = 'spring',
   treeState,
   treeBadge = 'SPROUT',
   levelUpPulse = false,
@@ -246,7 +284,8 @@ export function FrameViewport({
   const canDecorate = stageLevel >= 2;
 
   return (
-    <FrameViewportContainer $themeMode={themeMode}>
+    <FrameViewportContainer $themeMode={themeMode} $season={season}>
+      <SeasonTint $season={season} />
       <DayInfoText>
         <h3>
           기록 <span>{treeState.totalDate}</span>일
@@ -279,6 +318,32 @@ export function FrameViewport({
           <Firefly $x="26%" $y="30%" />
           <Firefly $x="68%" $y="36%" $delay="0.8s" />
           {stageLevel >= 5 && <Firefly $x="54%" $y="24%" $delay="1.5s" />}
+        </>
+      )}
+
+      {season === 'spring' && (
+        <>
+          <SeasonParticle $x="18%" $y="26%" $size={7} $color="#ffd6e8" $delay="0.1s" />
+          <SeasonParticle $x="73%" $y="30%" $size={6} $color="#ffe3ef" $delay="0.8s" />
+        </>
+      )}
+      {season === 'summer' && (
+        <>
+          <SeasonParticle $x="16%" $y="22%" $size={8} $color="#ffe58a" $delay="0.2s" />
+          <SeasonParticle $x="75%" $y="27%" $size={7} $color="#fff0a8" $delay="1.1s" />
+        </>
+      )}
+      {season === 'autumn' && (
+        <>
+          <SeasonParticle $x="20%" $y="24%" $size={8} $color="#ffc28f" $delay="0.3s" />
+          <SeasonParticle $x="70%" $y="33%" $size={7} $color="#ffdbab" $delay="1s" />
+        </>
+      )}
+      {season === 'winter' && (
+        <>
+          <SeasonParticle $x="22%" $y="21%" $size={7} $color="#e8f4ff" $delay="0.2s" />
+          <SeasonParticle $x="68%" $y="29%" $size={6} $color="#f3f9ff" $delay="0.9s" />
+          <SeasonParticle $x="50%" $y="20%" $size={5} $color="#ffffff" $delay="1.4s" />
         </>
       )}
 
